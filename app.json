@@ -18,7 +18,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -41,10 +44,17 @@
           "photosPermission": "Allow the app to access your photos for vehicle asset records.",
           "cameraPermission": "Allow the app to capture vehicle intake photos using your camera."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4ee3f7be-3a25-42b3-baee-3d65bf57a362"
+      }
+    },
+    "owner": "aditya1407"
   }
 }
