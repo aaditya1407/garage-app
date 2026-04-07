@@ -15,15 +15,24 @@ export const CAR_MAKES = [
   "Ford",
   "Audi",
   "BMW",
-  "Mercedes-Benz"
+  "Mercedes-Benz",
+  "Citroen",
+  "BYD",
+  "Volvo",
+  "Lexus",
+  "Land Rover",
+  "Isuzu",
+  "Force",
+  "Datsun",
+  "Fiat"
 ];
 
 export const CAR_MODELS: Record<string, string[]> = {
   "Maruti Suzuki": ["Swift", "Baleno", "Wagon R", "Alto", "Dzire", "Ertiga", "Brezza", "Grand Vitara", "Jimny", "Fronx", "XL6", "Celerio", "Ignis"],
   "Hyundai": ["Creta", "Venue", "i20", "Grand i10 Nios", "Verna", "Tucson", "Aura", "Alcazar", "Exter", "Ioniq 5"],
-  "Tata": ["Nexon", "Punch", "Harrier", "Safari", "Tiago", "Tigor", "Altroz"],
-  "Mahindra": ["Thar", "XUV700", "Scorpio-N", "Scorpio Classic", "XUV300", "Bolero", "XUV400"],
-  "Toyota": ["Innova Crysta", "Innova Hycross", "Fortuner", "Glanza", "Urban Cruiser Hyryder", "Hilux", "Camry"],
+  "Tata": ["Nexon", "Punch", "Harrier", "Safari", "Tiago", "Tigor", "Altroz", "Curvv"],
+  "Mahindra": ["Thar", "XUV700", "Scorpio-N", "Scorpio Classic", "XUV300", "XUV 3XO", "Bolero", "XUV400"],
+  "Toyota": ["Innova Crysta", "Innova Hycross", "Fortuner", "Glanza", "Urban Cruiser Hyryder", "Hilux", "Camry", "Taisor"],
   "Kia": ["Seltos", "Sonet", "Carens", "EV6"],
   "Honda": ["City", "Amaze", "Elevate"],
   "Volkswagen": ["Virtus", "Taigun", "Tiguan"],
@@ -33,21 +42,30 @@ export const CAR_MODELS: Record<string, string[]> = {
   "Nissan": ["Magnite"],
   "Jeep": ["Compass", "Meridian", "Wrangler", "Grand Cherokee"],
   "Ford": ["EcoSport", "Endeavour", "Figo", "Aspire"],
-  "Audi": ["A4", "A6", "Q3", "Q5", "Q7"],
-  "BMW": ["3 Series", "5 Series", "X1", "X3", "X5"],
-  "Mercedes-Benz": ["C-Class", "E-Class", "GLC", "GLE"]
+  "Audi": ["A4", "A6", "Q3", "Q5", "Q7", "e-tron"],
+  "BMW": ["3 Series", "5 Series", "7 Series", "X1", "X3", "X5", "X7"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "S-Class", "GLA", "GLC", "GLE", "GLS"],
+  "Citroen": ["C3", "eC3", "C3 Aircross", "C5 Aircross"],
+  "BYD": ["Atto 3", "e6", "Seal"],
+  "Volvo": ["XC40 Reacharge", "XC60", "XC90", "XC40"],
+  "Lexus": ["ES", "NX", "RX", "LX"],
+  "Land Rover": ["Defender", "Range Rover Evoque", "Discovery Sport", "Range Rover Velar", "Range Rover"],
+  "Isuzu": ["D-Max V-Cross", "MU-X"],
+  "Force": ["Gurkha"],
+  "Datsun": ["GO", "GO+", "redi-GO"],
+  "Fiat": ["Punto", "Linea", "Avventura", "Palio"]
 };
 
 // Generic Trim/Variants mapped by Make in Indian Market
 export const CAR_VARIANTS: Record<string, string[]> = {
-  "Maruti Suzuki": ["Sigma", "Delta", "Zeta", "Alpha", "LXI", "VXI", "ZXI", "ZXI+"],
-  "Hyundai": ["E", "EX", "S", "SX", "SX(O)", "S+", "Asta"],
-  "Tata": ["XE", "XM", "XT", "XZ", "XZ+", "Fearless", "Accomplished", "Creative", "Smart"],
-  "Mahindra": ["MX", "AX3", "AX5", "AX7", "Z2", "Z4", "Z6", "Z8", "Z8L", "W4", "W6", "W8"],
+  "Maruti Suzuki": ["Sigma", "Delta", "Zeta", "Alpha", "LXI", "VXI", "ZXI", "ZXI+", "Dream Edition"],
+  "Hyundai": ["E", "EX", "S", "SX", "SX(O)", "S+", "Asta", "Knight Edition", "N Line"],
+  "Tata": ["XE", "XM", "XT", "XZ", "XZ+", "Fearless", "Accomplished", "Creative", "Smart", "Dark Edition"],
+  "Mahindra": ["MX", "AX3", "AX5", "AX7", "AX7L", "Z2", "Z4", "Z6", "Z8", "Z8L", "W4", "W6", "W8"],
   "Toyota": ["G", "V", "Z", "ZX", "VX", "GX", "S", "E"],
   "Kia": ["HTE", "HTK", "HTK+", "HTX", "HTX+", "GTX", "GTX+", "X-Line"],
   "Honda": ["SV", "V", "VX", "ZX", "E", "S"],
-  "Volkswagen": ["Comfortline", "Highline", "Topline", "GT"],
+  "Volkswagen": ["Comfortline", "Highline", "Topline", "GT", "GT Plus"],
   "Skoda": ["Active", "Ambition", "Style", "L&K", "Monte Carlo"],
   "MG": ["Style", "Super", "Smart", "Sharp", "Savvy"],
   "Renault": ["RXE", "RXL", "RXT", "RXZ"],
@@ -56,5 +74,15 @@ export const CAR_VARIANTS: Record<string, string[]> = {
   "Ford": ["Ambiente", "Trend", "Titanium", "Titanium+"],
   "Audi": ["Premium Plus", "Technology", "Standard"],
   "BMW": ["xLine", "M Sport", "Sport", "Luxury Line"],
-  "Mercedes-Benz": ["Progressive", "AMG Line", "Exclusive"]
+  "Mercedes-Benz": ["Progressive", "AMG Line", "Exclusive"],
+  "Citroen": ["Live", "Feel", "Shine"],
+  "BYD": ["Dynamic", "Premium", "Performance"],
+  "Volvo": ["Core", "Plus", "Ultimate"],
+  "Lexus": ["Exquisite", "Luxury", "F Sport"],
+  "Land Rover": ["S", "SE", "HSE", "Autobiography"],
+  "Isuzu": ["Z", "Z-Prestige"],
+  "Force": ["Standard"],
+  "Datsun": ["D", "A", "T", "T(O)"],
+  "Fiat": ["Active", "Dynamic", "Emotion"]
 };
+

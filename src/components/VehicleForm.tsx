@@ -40,6 +40,9 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
   const [showVariantModal, setShowVariantModal] = useState(false);
 
   const [customerSearch, setCustomerSearch] = useState('');
+  const [makeSearch, setMakeSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState('');
+  const [variantSearch, setVariantSearch] = useState('');
   const [selectedMakeState, setSelectedMakeState] = useState<string | null>(null);
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<VehicleFormData>({
@@ -112,28 +115,68 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
 
   const filteredCustomers = customers.filter(c => c.full_name.toLowerCase().includes(customerSearch.toLowerCase()));
 
-  const renderSearchableModal = (title: string, visible: boolean, onDismiss: () => void, data: {label: string, value: string}[], onSelect: (val: string) => void, showSearch: boolean, searchQuery: string, setSearchQuery: (v: string) => void) => (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onDismiss}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        <View style={{ padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>{title}</Text>
-          <Button onPress={onDismiss}>Close</Button>
-        </View>
-        {showSearch && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-            <Searchbar placeholder="Search..." onChangeText={setSearchQuery} value={searchQuery} elevation={0} style={{ backgroundColor: '#F5F5F5' }} />
+  const renderSearchableModal = (
+    title: string, 
+    visible: boolean, 
+    onDismiss: () => void, 
+    data: {label: string, value: string}[], 
+    onSelect: (val: string) => void, 
+    searchQuery: string, 
+    setSearchQuery: (v: string) => void,
+    allowCustom: boolean = false
+  ) => {
+    const filteredData = data.filter(item => 
+      item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const showAddNew = allowCustom && searchQuery.trim().length > 0 && 
+      !data.some(item => item.label.toLowerCase() === searchQuery.trim().toLowerCase());
+
+    return (
+      <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onDismiss}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={{ padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>{title}</Text>
+              {allowCustom && <Text variant="bodySmall" style={{ color: '#666' }}>Type to add custom if not in list</Text>}
+            </View>
+            <Button onPress={onDismiss}>Close</Button>
           </View>
-        )}
-        <FlatList
-          data={data}
-          keyExtractor={(item, index) => `${item.value}-${index}`}
-          renderItem={({ item }) => (
-            <><List.Item title={item.label} onPress={() => { onSelect(item.value); onDismiss(); }} /><Divider /></>
-          )}
-        />
-      </SafeAreaView>
-    </Modal>
-  );
+          
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <Searchbar 
+              placeholder="Search or type new..." 
+              onChangeText={setSearchQuery} 
+              value={searchQuery} 
+              elevation={0} 
+              style={{ backgroundColor: '#F5F5F5' }} 
+            />
+          </View>
+
+          <FlatList
+            data={filteredData}
+            keyExtractor={(item, index) => `${item.value}-${index}`}
+            ListHeaderComponent={showAddNew ? (
+              <List.Item 
+                title={`+ Add "${searchQuery}"`}
+                titleStyle={{ color: '#1976D2', fontWeight: 'bold' }}
+                left={props => <List.Icon {...props} icon="plus" color="#1976D2" />}
+                onPress={() => { onSelect(searchQuery); onDismiss(); }}
+              />
+            ) : null}
+            renderItem={({ item }) => (
+              <><List.Item title={item.label} onPress={() => { onSelect(item.value); onDismiss(); }} /><Divider /></>
+            )}
+            ListEmptyComponent={!showAddNew ? (
+              <View style={{ padding: 32, alignItems: 'center' }}>
+                <Text variant="bodyMedium" style={{ color: '#666' }}>No matches found</Text>
+              </View>
+            ) : null}
+          />
+        </SafeAreaView>
+      </Modal>
+    );
+  };
 
   return (
       <View style={{ flex: 1 }}>
@@ -192,10 +235,10 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
       </ScrollView>
 
       {/* --- MODALS --- */}
-      {renderSearchableModal("Select Customer", showCustomerModal, () => setShowCustomerModal(false), filteredCustomers.map(c => ({ label: c.full_name, value: c.id })), (val) => setValue('customerId', val, { shouldValidate: true }), true, customerSearch, setCustomerSearch)}
-      {renderSearchableModal("Select Make", showMakeModal, () => setShowMakeModal(false), CAR_MAKES.map(m => ({ label: m, value: m })), (val) => { setValue('make', val, { shouldValidate: true }); setSelectedMakeState(val); setValue('model', ''); }, false, '', () => {})}
-      {renderSearchableModal("Select Model", showModelModal, () => setShowModelModal(false), selectedMakeState ? CAR_MODELS[selectedMakeState].map(m => ({ label: m, value: m })) : [], (val) => setValue('model', val, { shouldValidate: true }), false, '', () => {})}
-      {renderSearchableModal("Select Variant", showVariantModal, () => setShowVariantModal(false), selectedMakeState && CAR_VARIANTS[selectedMakeState] ? CAR_VARIANTS[selectedMakeState].map(v => ({ label: v, value: v })) : [], (val) => setValue('variant', val, { shouldValidate: true }), false, '', () => {})}
+      {renderSearchableModal("Select Customer", showCustomerModal, () => setShowCustomerModal(false), customers.map(c => ({ label: c.full_name, value: c.id })), (val) => setValue('customerId', val, { shouldValidate: true }), customerSearch, setCustomerSearch)}
+      {renderSearchableModal("Select Make", showMakeModal, () => { setShowMakeModal(false); setMakeSearch(''); }, CAR_MAKES.map(m => ({ label: m, value: m })), (val) => { setValue('make', val, { shouldValidate: true }); setSelectedMakeState(val); setValue('model', ''); setMakeSearch(''); }, makeSearch, setMakeSearch, true)}
+      {renderSearchableModal("Select Model", showModelModal, () => { setShowModelModal(false); setModelSearch(''); }, selectedMakeState && CAR_MODELS[selectedMakeState] ? CAR_MODELS[selectedMakeState].map(m => ({ label: m, value: m })) : [], (val) => { setValue('model', val, { shouldValidate: true }); setModelSearch(''); }, modelSearch, setModelSearch, true)}
+      {renderSearchableModal("Select Variant", showVariantModal, () => { setShowVariantModal(false); setVariantSearch(''); }, selectedMakeState && CAR_VARIANTS[selectedMakeState] ? CAR_VARIANTS[selectedMakeState].map(v => ({ label: v, value: v })) : [], (val) => { setValue('variant', val, { shouldValidate: true }); setVariantSearch(''); }, variantSearch, setVariantSearch, true)}
       </View>
   );
 };
