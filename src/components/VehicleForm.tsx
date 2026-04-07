@@ -45,6 +45,11 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
   const [variantSearch, setVariantSearch] = useState('');
   const [selectedMakeState, setSelectedMakeState] = useState<string | null>(null);
 
+  // States for database-learned entries
+  const [dbMakes, setDbMakes] = useState<string[]>([]);
+  const [dbModels, setDbModels] = useState<Record<string, string[]>>({});
+  const [dbVariants, setDbVariants] = useState<Record<string, string[]>>({});
+
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<VehicleFormData>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
@@ -69,7 +74,50 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
   useEffect(() => {
     supabase.from('customers').select('id, full_name').eq('garage_id', garageId)
       .then(({ data }) => setCustomers(data || []));
+    
+    fetchVehicleHistory();
   }, [garageId]);
+
+  const fetchVehicleHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('make, model, variant')
+        .eq('garage_id', garageId);
+
+      if (error) throw error;
+
+      if (data) {
+        const makes = new Set<string>();
+        const modelsByMake: Record<string, Set<string>> = {};
+        const variantsByMake: Record<string, Set<string>> = {};
+
+        data.forEach(v => {
+          if (v.make) makes.add(v.make);
+          if (v.make && v.model) {
+            if (!modelsByMake[v.make]) modelsByMake[v.make] = new Set();
+            modelsByMake[v.make].add(v.model);
+          }
+          if (v.make && v.variant) {
+            if (!variantsByMake[v.make]) variantsByMake[v.make] = new Set();
+            variantsByMake[v.make].add(v.variant);
+          }
+        });
+
+        setDbMakes(Array.from(makes));
+        
+        const finalModels: Record<string, string[]> = {};
+        Object.keys(modelsByMake).forEach(k => finalModels[k] = Array.from(modelsByMake[k]));
+        setDbModels(finalModels);
+
+        const finalVariants: Record<string, string[]> = {};
+        Object.keys(variantsByMake).forEach(k => finalVariants[k] = Array.from(variantsByMake[k]));
+        setDbVariants(finalVariants);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch vehicle history for suggestions:', e);
+    }
+  };
 
   // If prop changes later (e.g. they created a new user inline), update form constraint
   useEffect(() => {
@@ -97,6 +145,10 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
       if (error) throw error;
       
       if (Platform.OS !== 'web') Alert.alert("Success", "Vehicle registered successfully!");
+      
+      // Refresh options so new make/model shows up in dropdown next time
+      fetchVehicleHistory();
+      
       onSuccess(newVeh.id);
 
     } catch (error: any) {
@@ -236,9 +288,35 @@ export const VehicleForm: React.FC<Props> = ({ garageId, preSelectedCustomerId, 
 
       {/* --- MODALS --- */}
       {renderSearchableModal("Select Customer", showCustomerModal, () => setShowCustomerModal(false), customers.map(c => ({ label: c.full_name, value: c.id })), (val) => setValue('customerId', val, { shouldValidate: true }), customerSearch, setCustomerSearch)}
-      {renderSearchableModal("Select Make", showMakeModal, () => { setShowMakeModal(false); setMakeSearch(''); }, CAR_MAKES.map(m => ({ label: m, value: m })), (val) => { setValue('make', val, { shouldValidate: true }); setSelectedMakeState(val); setValue('model', ''); setMakeSearch(''); }, makeSearch, setMakeSearch, true)}
-      {renderSearchableModal("Select Model", showModelModal, () => { setShowModelModal(false); setModelSearch(''); }, selectedMakeState && CAR_MODELS[selectedMakeState] ? CAR_MODELS[selectedMakeState].map(m => ({ label: m, value: m })) : [], (val) => { setValue('model', val, { shouldValidate: true }); setModelSearch(''); }, modelSearch, setModelSearch, true)}
-      {renderSearchableModal("Select Variant", showVariantModal, () => { setShowVariantModal(false); setVariantSearch(''); }, selectedMakeState && CAR_VARIANTS[selectedMakeState] ? CAR_VARIANTS[selectedMakeState].map(v => ({ label: v, value: v })) : [], (val) => { setValue('variant', val, { shouldValidate: true }); setVariantSearch(''); }, variantSearch, setVariantSearch, true)}
+      
+      {renderSearchableModal("Select Make", showMakeModal, () => { setShowMakeModal(false); setMakeSearch(''); }, 
+        Array.from(new Set([...CAR_MAKES, ...dbMakes])).map(m => ({ label: m, value: m })), 
+        (val) => { 
+          setValue('make', val, { shouldValidate: true }); 
+          setSelectedMakeState(val); 
+          setValue('model', ''); 
+          setMakeSearch(''); 
+        }, makeSearch, setMakeSearch, true)}
+      
+      {renderSearchableModal("Select Model", showModelModal, () => { setShowModelModal(false); setModelSearch(''); }, 
+        Array.from(new Set([
+          ...(selectedMakeState ? (CAR_MODELS[selectedMakeState] || []) : []),
+          ...(selectedMakeState ? (dbModels[selectedMakeState] || []) : [])
+        ])).map(m => ({ label: m, value: m })), 
+        (val) => { 
+          setValue('model', val, { shouldValidate: true }); 
+          setModelSearch(''); 
+        }, modelSearch, setModelSearch, true)}
+      
+      {renderSearchableModal("Select Variant", showVariantModal, () => { setShowVariantModal(false); setVariantSearch(''); }, 
+        Array.from(new Set([
+          ...(selectedMakeState && CAR_VARIANTS[selectedMakeState] ? CAR_VARIANTS[selectedMakeState] : []),
+          ...(selectedMakeState && dbVariants[selectedMakeState] ? dbVariants[selectedMakeState] : [])
+        ])).map(v => ({ label: v, value: v })), 
+        (val) => { 
+          setValue('variant', val, { shouldValidate: true }); 
+          setVariantSearch(''); 
+        }, variantSearch, setVariantSearch, true)}
       </View>
   );
 };
