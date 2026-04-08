@@ -27,6 +27,12 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/4ee3f7be-3a25-42b3-baee-3d65bf57a362"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "plugins": [
       [
         "expo-splash-screen",
