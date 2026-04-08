@@ -307,12 +307,14 @@ const styles = StyleSheet.create({
   actionTile: {
     width: '47%',
     borderRadius: 14,
-    padding: 18,
+    padding: 12,
+    minHeight: 110,
+    justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
   },
-  actionIcon:  { fontSize: 28, marginBottom: 10 },
-  actionLabel: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  actionIcon:  { fontSize: 28, marginBottom: 8 },
+  actionLabel: { fontSize: 12, fontWeight: '700', textAlign: 'center', lineHeight: 16 },
 
   // Billing Queue
   billingCard: {

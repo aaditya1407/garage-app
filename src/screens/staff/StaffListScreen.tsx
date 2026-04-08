@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingBottom: 12,
   },
-  summaryText: { color: C.textMuted, fontSize: 13, fontWeight: '600' },
+  summaryText: { color: C.textMuted, fontSize: 13, fontWeight: '600', flex: 1 },
   addBtn: { backgroundColor: '#1D3461', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#3B82F655' },
   addBtnText: { color: '#3B82F6', fontSize: 13, fontWeight: '700' },
   listContent: { paddingHorizontal: 16, paddingBottom: 40 },

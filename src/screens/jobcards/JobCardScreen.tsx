@@ -275,7 +275,7 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
         =========================================== */}
         <Surface style={styles.sectionSurface} elevation={1}>
             <Text variant="titleMedium" style={styles.sectionHeader}>Service Details</Text>
-            <View style={styles.row}>
+            <View style={[styles.row, { flexWrap: 'wrap' }]}>
                 <View style={styles.halfCol}><TextInput mode="flat" label="Job Card No." value={jobCardNumber} disabled style={styles.inputSpacing} /></View>
                 <View style={styles.halfCol}><TextInput mode="flat" label="Timestamp" value={currentDate} disabled style={styles.inputSpacing} /></View>
             </View>
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   sectionSurface: { padding: 16, borderRadius: 12, marginBottom: 16, backgroundColor: '#FFFFFF' },
   sectionHeader: { fontWeight: 'bold', color: '#1976D2', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#EEEEEE', paddingBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  halfCol: { width: '48%' },
+  halfCol: { width: '48%', minWidth: 140 },
   inputSpacing: { marginBottom: 16 },
   submitBtn: { marginTop: 12, marginBottom: 32 }
 });

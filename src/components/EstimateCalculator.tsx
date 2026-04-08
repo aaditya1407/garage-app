@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, StyleSheet, ScrollView, Modal, FlatList,
+  View, StyleSheet, ScrollView, Modal, FlatList, SectionList,
   TouchableOpacity, SafeAreaView, Platform,
 } from 'react-native';
 import {
@@ -8,7 +8,7 @@ import {
   Button, IconButton, List, Searchbar, Chip,
 } from 'react-native-paper';
 
-import { COMMON_PARTS } from '../constants/parts';
+import { PART_CATEGORIES } from '../constants/parts';
 
 export interface PartLineItem {
   id: string;
@@ -104,9 +104,10 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
     setPartLines(prev => prev.filter(l => l.id !== id));
   };
 
-  const displayedParts = COMMON_PARTS.filter(p =>
-    p.toLowerCase().includes(partSearch.toLowerCase()),
-  );
+  const filteredCategories = PART_CATEGORIES.map(cat => ({
+    title: cat.title,
+    data: cat.data.filter((item: string) => item.toLowerCase().includes(partSearch.toLowerCase()))
+  })).filter(cat => cat.data.length > 0);
 
   // ── Render
   return (
@@ -326,16 +327,18 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
                     <Divider />
                   </React.Fragment>
                 ))}
-              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#F5F5F5' }}>
-                <Text variant="labelMedium" style={{ color: '#757575', fontWeight: 'bold' }}>📋 COMMON CATALOGUE</Text>
-              </View>
             </>
           )}
 
           {/* ── Common Parts Catalogue */}
-          <FlatList
-            data={displayedParts}
+          <SectionList
+            sections={filteredCategories}
             keyExtractor={item => item}
+            renderSectionHeader={({ section: { title } }) => (
+              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E3F2FD' }}>
+                <Text variant="labelMedium" style={{ color: '#1976D2', fontWeight: 'bold', letterSpacing: 0.5 }}>{title}</Text>
+              </View>
+            )}
             renderItem={({ item }) => (
               <>
                 <List.Item

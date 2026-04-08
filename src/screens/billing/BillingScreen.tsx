@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Platform, Alert, KeyboardAvoidingView, Modal, SafeAreaView, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, Alert, KeyboardAvoidingView, Modal, SafeAreaView, FlatList, SectionList } from 'react-native';
 import { Text, TextInput, Button, Surface, Divider, SegmentedButtons, IconButton, Searchbar, List, Chip } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,19 +15,7 @@ interface LineItem {
   inventoryItemId?: string;
 }
 
-const COMMON_PARTS: string[] = [
-  'Engine Oil','Oil Filter','Air Filter','Fuel Filter','Cabin Air Filter',
-  'Spark Plugs','Brake Pads (Front)','Brake Pads (Rear)','Brake Disc (Front)','Brake Disc (Rear)',
-  'Brake Fluid','Coolant / Antifreeze','Transmission Fluid','Power Steering Fluid','Wiper Blades',
-  'Battery','Alternator Belt','Timing Belt / Chain','Clutch Plate','Clutch Pressure Plate',
-  'Radiator Hose','Thermostat','Water Pump','Shock Absorber (Front)','Shock Absorber (Rear)',
-  'Ball Joint','Tie Rod End','CV Axle / Drive Shaft','Wheel Bearing',
-  'Headlight Bulb','Tail Light Bulb','Fog Light Bulb','Horn','Fuse',
-  'Oxygen Sensor','Throttle Body','Fuel Pump','Fuel Injector','Mass Air Flow Sensor',
-  'Exhaust Pipe','Catalytic Converter','AC Compressor','AC Filter / Dryer','AC Refrigerant (Gas)',
-  'Radiator','Fan Belt','Idler Pulley','Tensioner Pulley',
-  'Windshield','Door Glass','Tyres (Set)','Wheel Alignment & Balancing','Custom Part',
-];
+import { PART_CATEGORIES } from '../../constants/parts';
 
 export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { garageId, jobId } = route.params;
@@ -384,38 +372,49 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
                     <Divider />
                   </React.Fragment>
                 ))}
-              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#F5F5F5' }}>
-                <Text variant="labelMedium" style={{ color: '#757575', fontWeight: 'bold' }}>📋 COMMON CATALOGUE</Text>
-              </View>
             </>
           )}
 
           {/* ── Common Parts Catalogue */}
-          <FlatList
-            data={COMMON_PARTS.filter(p => p.toLowerCase().includes(partSearch.toLowerCase()))}
-            keyExtractor={item => item}
-            renderItem={({ item }) => (
-              <>
-                <List.Item
-                  title={item}
-                  left={props => (
-                    <List.Icon
-                      {...props}
-                      icon={item === 'Custom Part' ? 'pencil-outline' : 'cog-outline'}
-                      color={item === 'Custom Part' ? '#1976D2' : '#757575'}
+          {(() => {
+            const filteredCategories = PART_CATEGORIES.map(cat => ({
+              title: cat.title,
+              data: cat.data.filter((item: string) => item.toLowerCase().includes(partSearch.toLowerCase()))
+            })).filter(cat => cat.data.length > 0);
+
+            return (
+              <SectionList
+                sections={filteredCategories}
+                keyExtractor={item => item}
+                renderSectionHeader={({ section: { title } }) => (
+                  <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E3F2FD' }}>
+                    <Text variant="labelMedium" style={{ color: '#1976D2', fontWeight: 'bold', letterSpacing: 0.5 }}>{title}</Text>
+                  </View>
+                )}
+                renderItem={({ item }) => (
+                  <>
+                    <List.Item
+                      title={item}
+                      left={props => (
+                        <List.Icon
+                          {...props}
+                          icon={item === 'Custom Part' ? 'pencil-outline' : 'cog-outline'}
+                          color={item === 'Custom Part' ? '#1976D2' : '#757575'}
+                        />
+                      )}
+                      onPress={() => handleAddPart(item)}
                     />
-                  )}
-                  onPress={() => handleAddPart(item)}
-                />
-                <Divider />
-              </>
-            )}
-            ListEmptyComponent={
-              <Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>
-                No parts found. Try a different search or use "Custom Part".
-              </Text>
-            }
-          />
+                    <Divider />
+                  </>
+                )}
+                ListEmptyComponent={
+                  <Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>
+                    No parts found. Try a different search or use "Custom Part".
+                  </Text>
+                }
+              />
+            );
+          })()}
         </SafeAreaView>
       </Modal>
 

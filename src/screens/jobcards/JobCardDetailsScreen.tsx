@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, StyleSheet, ScrollView, Alert, SafeAreaView,
-  Image, Platform, TouchableOpacity, FlatList, Modal,
+  Image, Platform, TouchableOpacity, FlatList, SectionList, Modal,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import {
@@ -15,19 +15,7 @@ import { InspectionChecklist, InspectionData } from '../../components/Inspection
 import { ImagePickerGrid, ImageSlots } from '../../components/ImagePickerGrid';
 import * as FileSystem from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
-const COMMON_PARTS: string[] = [
-  'Engine Oil','Oil Filter','Air Filter','Fuel Filter','Cabin Air Filter',
-  'Spark Plugs','Brake Pads (Front)','Brake Pads (Rear)','Brake Disc (Front)','Brake Disc (Rear)',
-  'Brake Fluid','Coolant / Antifreeze','Transmission Fluid','Power Steering Fluid','Wiper Blades',
-  'Battery','Alternator Belt','Timing Belt / Chain','Clutch Plate','Clutch Pressure Plate',
-  'Radiator Hose','Thermostat','Water Pump','Shock Absorber (Front)','Shock Absorber (Rear)',
-  'Ball Joint','Tie Rod End','CV Axle / Drive Shaft','Wheel Bearing',
-  'Headlight Bulb','Tail Light Bulb','Fog Light Bulb','Horn','Fuse',
-  'Oxygen Sensor','Throttle Body','Fuel Pump','Fuel Injector','Mass Air Flow Sensor',
-  'Exhaust Pipe','Catalytic Converter','AC Compressor','AC Filter / Dryer','AC Refrigerant (Gas)',
-  'Radiator','Fan Belt','Idler Pulley','Tensioner Pulley',
-  'Windshield','Door Glass','Tyres (Set)','Wheel Alignment & Balancing','Custom Part',
-];
+import { PART_CATEGORIES } from '../../constants/parts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JobCardDetails'>;
 
@@ -250,9 +238,10 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
   };
 
   // ── Parts helpers ──────────────────────────────────────────────────────────
-  const filteredParts = COMMON_PARTS.filter((p: string) =>
-    p.toLowerCase().includes(partSearch.toLowerCase())
-  );
+  const filteredCategories = PART_CATEGORIES.map(cat => ({
+    title: cat.title,
+    data: cat.data.filter((item: string) => item.toLowerCase().includes(partSearch.toLowerCase()))
+  })).filter(cat => cat.data.length > 0);
 
   const addPart = (name: string) => {
     setEditPartLines(prev => [
@@ -616,9 +605,14 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
             <Searchbar placeholder="Search parts…" value={partSearch} onChangeText={setPartSearch} elevation={0} style={{ backgroundColor: '#F5F5F5' }} />
           </View>
-          <FlatList
-            data={filteredParts}
+          <SectionList
+            sections={filteredCategories}
             keyExtractor={item => item}
+            renderSectionHeader={({ section: { title } }) => (
+              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E3F2FD' }}>
+                <Text variant="labelMedium" style={{ color: '#1976D2', fontWeight: 'bold', letterSpacing: 0.5 }}>{title}</Text>
+              </View>
+            )}
             renderItem={({ item }) => (
               <>
                 <List.Item
@@ -629,7 +623,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
                 <Divider />
               </>
             )}
-            ListEmptyComponent={<Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>No parts found.</Text>}
+            ListEmptyComponent={<Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>No parts found. Try a different search or use "Custom Part".</Text>}
           />
         </SafeAreaView>
       </Modal>
