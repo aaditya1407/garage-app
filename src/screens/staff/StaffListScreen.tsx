@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityInd
 import { Text, Searchbar, Chip, IconButton } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StaffList'>;

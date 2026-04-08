@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { Text, List, FAB, ActivityIndicator, useTheme, Surface, Avatar, Searchbar } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerList'>;

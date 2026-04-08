@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/RootNavigator';
+import { RootStackParamList } from '../navigation/types';
 import { AdvisorDashboardScreen } from './AdvisorDashboardScreen';
 import { TechnicianDashboardScreen } from './TechnicianDashboardScreen';
 import { AccountantDashboardScreen } from './AccountantDashboardScreen';

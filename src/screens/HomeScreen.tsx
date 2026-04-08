@@ -7,7 +7,7 @@ import { TechnicianDashboardScreen } from './TechnicianDashboardScreen';
 import { AccountantDashboardScreen } from './AccountantDashboardScreen';
 import { Button } from '../components/Button';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/RootNavigator';
+import { RootStackParamList } from '../navigation/types';
 
 // Types of expected roles in our database
 type UserRole = 'admin' | 'service_advisor' | 'technician' | 'accountant' | null;

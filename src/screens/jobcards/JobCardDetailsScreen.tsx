@@ -9,7 +9,7 @@ import {
   Chip, Avatar, Button, TextInput, IconButton, Searchbar, List,
 } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { InspectionChecklist, InspectionData } from '../../components/InspectionChecklist';
 import { ImagePickerGrid, ImageSlots } from '../../components/ImagePickerGrid';

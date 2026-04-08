@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { CustomerForm } from '../../components/CustomerForm';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerForm'>;

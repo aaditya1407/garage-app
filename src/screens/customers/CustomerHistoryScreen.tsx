@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, SafeAreaView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { Text, List, ActivityIndicator, useTheme, Surface, Avatar, Chip } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CustomerHistory'>;
 

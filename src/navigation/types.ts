@@ -1,0 +1,21 @@
+export type RootStackParamList = {
+  Auth: undefined;
+  Home: undefined;
+  StaffHome: undefined;
+  VerificationSuccess: undefined;
+  CustomerList: { garageId: string };
+  CustomerForm: { garageId: string };
+  CustomerHistory: { customerId: string, garageId: string };
+  VehicleList: { garageId: string };
+  VehicleForm: { garageId: string };
+  JobCardForm: { garageId: string };
+  JobCardList: { garageId: string };
+  JobCardDetails: { jobId: string };
+  InventoryList: { garageId: string };
+  InventoryForm: { garageId: string; item?: any };
+  BillingQueue: { garageId: string };
+  BillingForm: { garageId: string; jobId: string };
+  InvoiceList: { garageId: string };
+  StaffList: { garageId: string };
+  StaffForm: { garageId: string; staff?: any };
+};

@@ -3,7 +3,7 @@ import { View, StyleSheet, SafeAreaView, ActivityIndicator, ScrollView, Touchabl
 import { supabase } from '../lib/supabase';
 import { Text, Chip } from 'react-native-paper';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/RootNavigator';
+import { RootStackParamList } from '../navigation/types';
 
 interface AccountantDashboardScreenProps {
   userId: string;

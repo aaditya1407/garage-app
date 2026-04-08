@@ -25,29 +25,30 @@ import { StaffFormScreen } from '../screens/staff/StaffFormScreen';
 import { StaffLoginScreen } from '../screens/StaffLoginScreen';
 import { ActivityIndicator, View } from 'react-native';
 
-export type RootStackParamList = {
-  Auth: undefined;
-  Home: undefined;
-  StaffHome: undefined;
-  VerificationSuccess: undefined;
-  CustomerList: { garageId: string };
-  CustomerForm: { garageId: string };
-  CustomerHistory: { customerId: string, garageId: string };
-  VehicleList: { garageId: string };
-  VehicleForm: { garageId: string };
-  JobCardForm: { garageId: string };
-  JobCardList: { garageId: string };
-  JobCardDetails: { jobId: string };
-  InventoryList: { garageId: string };
-  InventoryForm: { garageId: string; item?: any };
-  BillingQueue: { garageId: string };
-  BillingForm: { garageId: string; jobId: string };
-  InvoiceList: { garageId: string };
-  StaffList: { garageId: string };
-  StaffForm: { garageId: string; staff?: any };
-};
+import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Authenticated app screens (shared between admin and staff)
+const AppScreens = () => (
+  <>
+    <Stack.Screen name="CustomerList" component={CustomerListScreen} options={{ headerShown: true, title: 'Customers' }} />
+    <Stack.Screen name="CustomerForm" component={CustomerFormScreen} options={{ headerShown: true, title: 'Add Customer' }} />
+    <Stack.Screen name="CustomerHistory" component={CustomerHistoryScreen} options={{ headerShown: true, title: 'Customer History' }} />
+    <Stack.Screen name="VehicleList" component={VehicleListScreen} options={{ headerShown: true, title: 'Vehicles' }} />
+    <Stack.Screen name="VehicleForm" component={VehicleFormScreen} options={{ headerShown: true, title: 'Add Vehicle' }} />
+    <Stack.Screen name="JobCardForm" component={JobCardScreen} options={{ headerShown: true, title: 'Job Card Intake' }} />
+    <Stack.Screen name="JobCardList" component={JobCardListScreen} options={{ headerShown: true, title: 'Active Jobs' }} />
+    <Stack.Screen name="JobCardDetails" component={JobCardDetailsScreen} options={{ headerShown: true, title: 'Job Workspace' }} />
+    <Stack.Screen name="InventoryList" component={InventoryScreen} options={{ headerShown: true, title: 'Parts Inventory' }} />
+    <Stack.Screen name="InventoryForm" component={InventoryFormScreen} options={({ route }) => ({ headerShown: true, title: (route.params as any)?.item ? 'Edit Part' : 'Add Part' })} />
+    <Stack.Screen name="BillingQueue" component={BillingQueueScreen} options={{ headerShown: true, title: 'Billing Queue' }} />
+    <Stack.Screen name="BillingForm" component={BillingScreen} options={{ headerShown: true, title: 'Generate Bill' }} />
+    <Stack.Screen name="InvoiceList" component={InvoiceListScreen} options={{ headerShown: true, title: 'Invoice History' }} />
+    <Stack.Screen name="StaffList" component={StaffListScreen} options={{ headerShown: true, title: 'Manage Staff' }} />
+    <Stack.Screen name="StaffForm" component={StaffFormScreen} options={({ route }) => ({ headerShown: true, title: (route.params as any)?.staff ? 'Edit Staff' : 'Add Staff' })} />
+  </>
+);
 
 export const RootNavigator = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -109,26 +110,7 @@ export const RootNavigator = () => {
     );
   }
 
-  // Authenticated app screens (shared between admin and staff)
-  const AppScreens = () => (
-    <>
-      <Stack.Screen name="CustomerList" component={CustomerListScreen} options={{ headerShown: true, title: 'Customers' }} />
-      <Stack.Screen name="CustomerForm" component={CustomerFormScreen} options={{ headerShown: true, title: 'Add Customer' }} />
-      <Stack.Screen name="CustomerHistory" component={CustomerHistoryScreen} options={{ headerShown: true, title: 'Customer History' }} />
-      <Stack.Screen name="VehicleList" component={VehicleListScreen} options={{ headerShown: true, title: 'Vehicles' }} />
-      <Stack.Screen name="VehicleForm" component={VehicleFormScreen} options={{ headerShown: true, title: 'Add Vehicle' }} />
-      <Stack.Screen name="JobCardForm" component={JobCardScreen} options={{ headerShown: true, title: 'Job Card Intake' }} />
-      <Stack.Screen name="JobCardList" component={JobCardListScreen} options={{ headerShown: true, title: 'Active Jobs' }} />
-      <Stack.Screen name="JobCardDetails" component={JobCardDetailsScreen} options={{ headerShown: true, title: 'Job Workspace' }} />
-      <Stack.Screen name="InventoryList" component={InventoryScreen} options={{ headerShown: true, title: 'Parts Inventory' }} />
-      <Stack.Screen name="InventoryForm" component={InventoryFormScreen} options={({ route }) => ({ headerShown: true, title: route.params?.item ? 'Edit Part' : 'Add Part' })} />
-      <Stack.Screen name="BillingQueue" component={BillingQueueScreen} options={{ headerShown: true, title: 'Billing Queue' }} />
-      <Stack.Screen name="BillingForm" component={BillingScreen} options={{ headerShown: true, title: 'Generate Bill' }} />
-      <Stack.Screen name="InvoiceList" component={InvoiceListScreen} options={{ headerShown: true, title: 'Invoice History' }} />
-      <Stack.Screen name="StaffList" component={StaffListScreen} options={{ headerShown: true, title: 'Manage Staff' }} />
-      <Stack.Screen name="StaffForm" component={StaffFormScreen} options={({ route }) => ({ headerShown: true, title: route.params?.staff ? 'Edit Staff' : 'Add Staff' })} />
-    </>
-  );
+
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

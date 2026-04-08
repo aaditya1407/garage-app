@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, ActivityIndicator, Alert, Platform } from '
 import { Text, Surface, Button, IconButton, Searchbar, Chip } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { generateInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceList'>;

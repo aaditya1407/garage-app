@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { VehicleForm } from '../../components/VehicleForm';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VehicleForm'>;

@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Platform, Alert, KeyboardAvoidingView, Mo
 import { Text, TextInput, Button, Surface, Divider, SegmentedButtons, IconButton, Searchbar, List, Chip } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { generateInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BillingForm'>;

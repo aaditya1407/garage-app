@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Platform, Alert, KeyboardAvoidingView } f
 import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StaffForm'>;
 

@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, Alert, Mo
 import { supabase } from '../../lib/supabase';
 import { Text, TextInput, Button, Surface, useTheme, Searchbar, List, Divider, SegmentedButtons, Checkbox } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
+import { RootStackParamList } from '../../navigation/types';
 import { InspectionChecklist, InspectionData } from '../../components/InspectionChecklist';
 import { ImagePickerGrid, ImageSlots } from '../../components/ImagePickerGrid';
 import { EstimateCalculator, EstimatePayload } from '../../components/EstimateCalculator';

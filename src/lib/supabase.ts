@@ -1,5 +1,7 @@
-import { AppState } from 'react-native';
-import 'react-native-url-polyfill/auto';
+import { AppState, Platform } from 'react-native';
+if (Platform.OS !== 'web') {
+  require('react-native-url-polyfill/auto');
+}
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
