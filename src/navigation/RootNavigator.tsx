@@ -60,7 +60,13 @@ export const RootNavigator = () => {
     // Check staff session from AsyncStorage
     const staffStr = await AsyncStorage.getItem('staffSession');
     if (staffStr) {
-      setStaffSession(JSON.parse(staffStr));
+      try {
+        setStaffSession(JSON.parse(staffStr));
+      } catch (e) {
+        console.error('Failed to parse staff session:', e);
+        await AsyncStorage.removeItem('staffSession');
+        setStaffSession(null);
+      }
     } else {
       setStaffSession(null);
     }

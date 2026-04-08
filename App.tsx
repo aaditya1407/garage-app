@@ -1,7 +1,11 @@
+import { Platform } from 'react-native';
+if (Platform.OS !== 'web') {
+  require('react-native-url-polyfill/auto');
+}
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 
@@ -36,7 +40,7 @@ const appTheme = {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <PaperProvider theme={appTheme}>
         <NavigationContainer>
           <RootNavigator />
