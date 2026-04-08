@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 if (Platform.OS !== 'web') {
   require('react-native-url-polyfill/auto');
@@ -40,7 +41,7 @@ const appTheme = {
 
 export default function App() {
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+    <SafeAreaProvider initialMetrics={Platform.OS === 'web' ? undefined : initialWindowMetrics}>
       <PaperProvider theme={appTheme}>
         <NavigationContainer>
           <RootNavigator />

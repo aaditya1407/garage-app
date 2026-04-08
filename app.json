@@ -48,7 +48,7 @@
       "expo-sharing"
     ],
     "experiments": {
-      "reactCompiler": true
+      "reactCompiler": false
     },
     "extra": {
       "eas": {

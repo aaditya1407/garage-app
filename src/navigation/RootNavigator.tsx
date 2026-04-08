@@ -90,7 +90,14 @@ export const RootNavigator = () => {
       checkSessions();
     });
 
-    return () => subscription.unsubscribe();
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleStaffLoginSuccess = async () => {
