@@ -13,7 +13,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { InspectionChecklist, InspectionData } from '../../components/InspectionChecklist';
 import { ImagePickerGrid, ImageSlots } from '../../components/ImagePickerGrid';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 import { PART_CATEGORIES } from '../../constants/parts';
 
@@ -80,19 +80,19 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       let technicianName = 'Unassigned';
 
       if (data.advisor_id) {
-        const { data: staffAd } = await supabase.from('garage_staff').select('full_name').eq('id', data.advisor_id).single();
+        const { data: staffAd } = await supabase.from('garage_staff').select('full_name').eq('id', data.advisor_id).maybeSingle();
         if (staffAd) advisorName = staffAd.full_name;
         else {
-          const { data: profAd } = await supabase.from('profiles').select('full_name').eq('id', data.advisor_id).single();
+          const { data: profAd } = await supabase.from('profiles').select('full_name').eq('id', data.advisor_id).maybeSingle();
           if (profAd) advisorName = profAd.full_name;
         }
       }
 
       if (data.assigned_technician_id) {
-        const { data: staffTech } = await supabase.from('garage_staff').select('full_name').eq('id', data.assigned_technician_id).single();
+        const { data: staffTech } = await supabase.from('garage_staff').select('full_name').eq('id', data.assigned_technician_id).maybeSingle();
         if (staffTech) technicianName = staffTech.full_name;
         else {
-          const { data: profTech } = await supabase.from('profiles').select('full_name').eq('id', data.assigned_technician_id).single();
+          const { data: profTech } = await supabase.from('profiles').select('full_name').eq('id', data.assigned_technician_id).maybeSingle();
           if (profTech) technicianName = profTech.full_name;
         }
       }
@@ -143,9 +143,16 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           for (const [key, uri] of Object.entries(editImages)) {
               if (uri && uri !== job.images?.[key] && !uri.startsWith('http')) {
                   try {
-                      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+                      let fileData;
+                      if (Platform.OS === 'web') {
+                          const response = await fetch(uri);
+                          fileData = await response.blob();
+                      } else {
+                          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+                          fileData = decode(base64);
+                      }
                       const filePath = `${job.garage_id}/${job.job_card_number}/${key}-${Date.now()}.jpg`;
-                      const { error: uploadError } = await supabase.storage.from('job_cards_media').upload(filePath, decode(base64), { contentType: 'image/jpeg' });
+                      const { error: uploadError } = await supabase.storage.from('job_cards_media').upload(filePath, fileData, { contentType: 'image/jpeg' });
                       if (!uploadError) {
                           const { data: { publicUrl } } = supabase.storage.from('job_cards_media').getPublicUrl(filePath);
                           uploadedUrls[key] = publicUrl;

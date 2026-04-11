@@ -52,7 +52,8 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
             address: data.address,
             city: data.city,
             state: data.state,
-            country: 'India'
+            country: 'India',
+            owner_user_id: userId,   // ties garage to auth user UUID
           })
           .select()
           .single();

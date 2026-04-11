@@ -9,7 +9,7 @@ import { ImagePickerGrid, ImageSlots } from '../../components/ImagePickerGrid';
 import { EstimateCalculator, EstimatePayload } from '../../components/EstimateCalculator';
 import { CustomerForm } from '../../components/CustomerForm';
 import { VehicleForm } from '../../components/VehicleForm';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JobCardForm'>;
@@ -157,9 +157,16 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
           for (const [key, uri] of Object.entries(jobImages)) {
               if (uri) {
                   try {
-                      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+                      let fileData;
+                      if (Platform.OS === 'web') {
+                          const response = await fetch(uri);
+                          fileData = await response.blob();
+                      } else {
+                          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+                          fileData = decode(base64);
+                      }
                       const filePath = `${garageId}/${jobCardNumber}/${key}-${Date.now()}.jpg`;
-                      const { error: uploadError } = await supabase.storage.from('job_cards_media').upload(filePath, decode(base64), { contentType: 'image/jpeg' });
+                      const { error: uploadError } = await supabase.storage.from('job_cards_media').upload(filePath, fileData, { contentType: 'image/jpeg' });
                       if (!uploadError) {
                           const { data: { publicUrl } } = supabase.storage.from('job_cards_media').getPublicUrl(filePath);
                           uploadedUrls[key] = publicUrl;

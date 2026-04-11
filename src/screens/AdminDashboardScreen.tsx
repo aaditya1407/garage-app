@@ -9,7 +9,9 @@ interface AdminDashboardScreenProps {
   userId: string;
   fullName: string;
   garageId: string;
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
+  phone: string;
+  navigation: NativeStackNavigationProp<RootStackParamList, any>;
+  showBackToOwner?: boolean;
 }
 
 // ── Colour tokens (dark theme) ────────────────────────────────────
@@ -35,7 +37,7 @@ const C = {
   white:    '#FFFFFF',
 };
 
-export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ userId, fullName, garageId, navigation }) => {
+export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ userId, fullName, garageId, phone, navigation, showBackToOwner = false }) => {
   const [loading, setLoading]                   = useState(true);
   const [refreshing, setRefreshing]             = useState(false);
   const [garageName, setGarageName]             = useState('');
@@ -66,12 +68,12 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
         .eq('garage_id', garageId);
       setStaffCount(sc || 0);
 
-      // 3. Open jobs (status = in-progress or pending)
+      // 3. Open jobs (status = open or in_progress)
       const { count: oj } = await supabase
         .from('job_cards')
         .select('id', { count: 'exact', head: true })
         .eq('garage_id', garageId)
-        .in('status', ['pending', 'in-progress']);
+        .in('status', ['open', 'in_progress']);
       setOpenJobsCount(oj || 0);
 
       // 4. Jobs completed today
@@ -158,6 +160,11 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
       >
 
         {/* ── Header ── */}
+        {showBackToOwner && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>← All Branches</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Hello, {fullName.split(' ')[0]} 👋</Text>
@@ -261,6 +268,9 @@ const styles = StyleSheet.create({
 
   signOutBtn:  { backgroundColor: C.redSoft, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: C.red + '44' },
   signOutText: { color: C.red, fontSize: 12, fontWeight: '700' },
+
+  backBtn:     { backgroundColor: C.accentSoft, alignSelf: 'flex-start', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: C.accent + '55', marginBottom: 16 },
+  backBtnText: { color: C.accent, fontSize: 13, fontWeight: '700' },
 
   // Invite Code
   codeCard: {

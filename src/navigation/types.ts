@@ -18,4 +18,8 @@ export type RootStackParamList = {
   InvoiceList: { garageId: string };
   StaffList: { garageId: string };
   StaffForm: { garageId: string; staff?: any };
+  BranchManager: { phone: string, currentGarageId: string, fullName: string };
+  BranchForm: { phone: string, fullName: string };
+  OwnerDashboard: { phone: string; fullName: string; userId: string };
+  BranchDashboard: { garageId: string; phone: string; fullName: string; userId: string };
 };

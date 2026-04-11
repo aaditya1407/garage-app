@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { AdminDashboardScreen } from './AdminDashboardScreen';
 import { AdvisorDashboardScreen } from './AdvisorDashboardScreen';
 import { TechnicianDashboardScreen } from './TechnicianDashboardScreen';
 import { AccountantDashboardScreen } from './AccountantDashboardScreen';
 import { Button } from '../components/Button';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 
 // Types of expected roles in our database
@@ -17,9 +16,32 @@ interface UserProfile {
   role: UserRole;
   full_name: string;
   garage_id: string;
+  phone: string;
 }
 
+// Redirects admin to the OwnerDashboard screen after mount
+const OwnerRedirect = ({
+  navigation, profile,
+}: {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
+  profile: UserProfile;
+}) => {
+  useEffect(() => {
+    navigation.replace('OwnerDashboard', {
+      phone:    profile.phone,
+      fullName: profile.full_name,
+      userId:   profile.id,
+    });
+  }, []);
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#080E18' }}>
+      <ActivityIndicator size="large" color="#3B82F6" />
+    </View>
+  );
+};
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -41,7 +63,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, role, garage_id')
+        .select('id, full_name, role, garage_id, phone')
         .eq('id', userId)
         .single();
 
@@ -86,14 +108,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // --- SMART ROUTING BASED ON ROLE ---
 
   if (profile.role === 'admin') {
-    return (
-      <AdminDashboardScreen 
-        userId={profile.id} 
-        fullName={profile.full_name} 
-        garageId={profile.garage_id} 
-        navigation={navigation}
-      />
-    );
+    // Navigate to the multi-branch owner dashboard instead of rendering inline.
+    // Use a useEffect to do this after render to avoid doing navigation inside render.
+    return <OwnerRedirect navigation={navigation} profile={profile} />;
   }
 
   if (profile.role === 'service_advisor') {

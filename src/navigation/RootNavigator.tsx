@@ -47,6 +47,10 @@ const AppScreens = () => (
     <Stack.Screen name="InvoiceList" component={InvoiceListScreen} options={{ headerShown: true, title: 'Invoice History' }} />
     <Stack.Screen name="StaffList" component={StaffListScreen} options={{ headerShown: true, title: 'Manage Staff' }} />
     <Stack.Screen name="StaffForm" component={StaffFormScreen} options={({ route }) => ({ headerShown: true, title: (route.params as any)?.staff ? 'Edit Staff' : 'Add Staff' })} />
+    <Stack.Screen name="BranchManager" component={require('../screens/BranchManagerScreen').BranchManagerScreen} options={{ headerShown: true, title: 'Manage Branches' }} />
+    <Stack.Screen name="BranchForm" component={require('../screens/BranchFormScreen').BranchFormScreen} options={{ headerShown: true, title: 'Add New Garage' }} />
+    <Stack.Screen name="OwnerDashboard" component={require('../screens/OwnerDashboardScreen').OwnerDashboardScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="BranchDashboard" component={require('../screens/BranchDashboardScreen').BranchDashboardScreen} options={{ headerShown: false }} />
   </>
 );
 
@@ -80,12 +84,30 @@ export const RootNavigator = () => {
 
   useEffect(() => {
     // Check Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        // Stale / invalid token — clear everything and boot to login
+        console.warn('Session restore failed, clearing stale session:', error.message);
+        supabase.auth.signOut();
+        AsyncStorage.removeItem('staffSession');
+        setSession(null);
+        setStaffSession(null);
+        setIsLoading(false);
+        return;
+      }
       setSession(session);
       checkSessions();
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+        // Token expired or revoked — clear everything
+        AsyncStorage.removeItem('staffSession');
+        setSession(null);
+        setStaffSession(null);
+        setIsLoading(false);
+        return;
+      }
       setSession(session);
       checkSessions();
     });
