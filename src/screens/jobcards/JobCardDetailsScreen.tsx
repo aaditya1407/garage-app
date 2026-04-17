@@ -164,7 +164,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           }
       }
 
-      const { error } = await supabase.from('job_cards').update({
+      let detailUpdateQuery = supabase.from('job_cards').update({
         odometer: parseInt(editOdometer) || 0,
         fuel_level: editFuelLevel,
         bay_number: editBayNumber || null,
@@ -176,6 +176,8 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
         inspection_data: editInspectionData || {},
         images: uploadedUrls
       }).eq('id', jobId);
+      if (job?.garage_id) detailUpdateQuery = detailUpdateQuery.eq('garage_id', job.garage_id);
+      const { error } = await detailUpdateQuery;
       if (error) throw error;
       setEditingDetails(false);
       fetchJobDetails();
@@ -197,7 +199,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 
     setSaving(true);
     try {
-      const { error } = await supabase.from('job_cards').update({
+      let financialUpdateQuery = supabase.from('job_cards').update({
         parts_lines: editPartLines.map(l => ({ name: l.name, isCustom: l.isCustom, cost: parseFloat(l.cost) || 0 })),
         parts_cost: partsCost,
         labour_cost: labour,
@@ -205,6 +207,8 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
         estimated_cost: total,
         approval_status: editApprovalStatus,
       }).eq('id', jobId);
+      if (job?.garage_id) financialUpdateQuery = financialUpdateQuery.eq('garage_id', job.garage_id);
+      const { error } = await financialUpdateQuery;
       if (error) throw error;
       setEditingFinancials(false);
       fetchJobDetails();
@@ -222,7 +226,9 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
     try {
       const payload: any = { status: newStatus };
       if (newStatus === 'completed') payload.completed_at = new Date().toISOString();
-      const { error } = await supabase.from('job_cards').update(payload).eq('id', jobId);
+      let statusUpdateQuery = supabase.from('job_cards').update(payload).eq('id', jobId);
+      if (job?.garage_id) statusUpdateQuery = statusUpdateQuery.eq('garage_id', job.garage_id);
+      const { error } = await statusUpdateQuery;
       if (error) throw error;
       fetchJobDetails();
     } catch (err) {
@@ -569,7 +575,9 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
               onPress={async () => {
                 setSaving(true);
                 try {
-                  const { error } = await supabase.from('job_cards').update({ final_note: editFinalNote }).eq('id', jobId);
+                  let finalNoteUpdateQuery = supabase.from('job_cards').update({ final_note: editFinalNote }).eq('id', jobId);
+                  if (job?.garage_id) finalNoteUpdateQuery = finalNoteUpdateQuery.eq('garage_id', job.garage_id);
+                  const { error } = await finalNoteUpdateQuery;
                   if (error) throw error;
                   fetchJobDetails();
                 } catch (err: any) {

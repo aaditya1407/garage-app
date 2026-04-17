@@ -168,9 +168,18 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
       }
       // Simple loop to deduct stock: (For now, just doing it across all inventoryItemId present in partLines)
       for (const line of inventoryLines) {
-          const { data: inv } = await supabase.from('inventory').select('stock_quantity').eq('id', line.inventoryItemId).single();
+          const { data: inv } = await supabase
+            .from('inventory')
+            .select('stock_quantity')
+            .eq('id', line.inventoryItemId)
+            .eq('garage_id', garageId)
+            .single();
           if (inv && inv.stock_quantity > 0) {
-            await supabase.from('inventory').update({ stock_quantity: inv.stock_quantity - 1 }).eq('id', line.inventoryItemId);
+            await supabase
+              .from('inventory')
+              .update({ stock_quantity: inv.stock_quantity - 1 })
+              .eq('id', line.inventoryItemId)
+              .eq('garage_id', garageId);
           }
       }
 

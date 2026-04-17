@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions, Alert, Platform
+  ActivityIndicator, RefreshControl, Dimensions, Alert, Platform, Modal
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
@@ -56,6 +56,12 @@ export const OwnerDashboardScreen: React.FC<Props> = ({ route, navigation }) => 
   const [branches, setBranches]   = useState<GarageStats[]>([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Custom modal state for deletion
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Aggregates across all branches
   const agg = branches.reduce(
@@ -145,31 +151,37 @@ export const OwnerDashboardScreen: React.FC<Props> = ({ route, navigation }) => 
     }
   }, [phone]);
 
-  const handleDeleteBranch = (garageId: string, garageName: string) => {
-    const confirmDelete = async () => {
-      try {
-        const { error } = await supabase.from('garages').delete().eq('id', garageId);
-        if (error) throw error;
-        fetchAllBranches();
-      } catch (err: any) {
-        if (Platform.OS === 'web') window.alert('Failed to delete: ' + err.message);
-        else Alert.alert('Error', 'Failed to delete branch: ' + err.message);
-      }
-    };
+  const requestDeleteBranch = (garageId: string, garageName: string) => {
+    setBranchToDelete({ id: garageId, name: garageName });
+    setDeleteError(null);
+    setDeleteModalVisible(true);
+  };
 
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Are you sure you want to permanently delete "${garageName}"? This action cannot be undone.`)) {
-        confirmDelete();
+  const confirmDelete = async () => {
+    if (!branchToDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { data, error } = await supabase.from('garages').delete().eq('id', branchToDelete.id).select();
+      
+      if (error) {
+        if (error.code === '23503') {
+          throw new Error('This branch cannot be deleted because it contains active Staff, Job Cards, or Invoices. You must remove all branch data first.');
+        }
+        throw error;
       }
-    } else {
-      Alert.alert(
-        'Delete Branch',
-        `Are you sure you want to permanently delete "${garageName}"? This action cannot be undone.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: confirmDelete }
-        ]
-      );
+
+      if (!data || data.length === 0) {
+        throw new Error('Silently blocked by Database Security. Your Supabase RLS policies do not allow deleting garages.');
+      }
+
+      setDeleteModalVisible(false);
+      setBranchToDelete(null);
+      fetchAllBranches();
+    } catch (err: any) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -272,13 +284,56 @@ export const OwnerDashboardScreen: React.FC<Props> = ({ route, navigation }) => 
               }
               onStaff={() => navigation.navigate('StaffList', { garageId: b.id })}
               onJobs={() => navigation.navigate('JobCardList', { garageId: b.id })}
-              onDelete={() => handleDeleteBranch(b.id, b.garage_name)}
+              onDelete={() => requestDeleteBranch(b.id, b.garage_name)}
             />
           ))
         )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── Custom Delete Confirmation Modal ── */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Branch</Text>
+            {branchToDelete && (
+              <Text style={styles.modalText}>
+                Are you sure you want to permanently delete <Text style={{fontWeight: 'bold', color: C.red}}>"{branchToDelete.name}"</Text>? This action cannot be undone.
+              </Text>
+            )}
+            {deleteError && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{deleteError}</Text>
+              </View>
+            )}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => {
+                  setDeleteModalVisible(false);
+                  setBranchToDelete(null);
+                }}
+                disabled={deleting}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDeleteBtn}
+                onPress={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.modalDeleteText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -438,4 +493,17 @@ const styles = StyleSheet.create({
   addBranchText: { color: C.accent, fontWeight: '700', fontSize: 13 },
 
   emptyCard: { backgroundColor: C.surface, borderRadius: 20, padding: 40, alignItems: 'center', borderWidth: 1, borderColor: C.border },
+
+  // Delete Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: C.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: C.border },
+  modalTitle:   { fontSize: 20, fontWeight: 'bold', color: C.text, marginBottom: 16 },
+  modalText:    { fontSize: 14, color: C.textMuted, lineHeight: 22, marginBottom: 24 },
+  errorBox:     { backgroundColor: C.redSoft, padding: 12, borderRadius: 8, marginBottom: 20, borderWidth: 1, borderColor: C.red + '40' },
+  errorText:    { color: C.red, fontSize: 13, lineHeight: 18 },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
+  modalCancelBtn:{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: C.surface2 },
+  modalCancelText:{ color: C.text, fontWeight: '600' },
+  modalDeleteBtn:{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: C.red, minWidth: 80, alignItems: 'center' },
+  modalDeleteText:{ color: '#FFF', fontWeight: '600' },
 });

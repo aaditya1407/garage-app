@@ -44,13 +44,23 @@ export const UnifiedAssetSearch: React.FC<Props> = ({ garageId, onAssetSelected 
           .ilike('license_plate', `%${query}%`);
 
         const { data: cData } = await supabase
-          .from('vehicles')
-          .select('id, make, model, license_plate, customer_id, customers!inner(full_name, phone)')
+          .from('customers')
+          .select('full_name, phone, vehicles(id, make, model, license_plate, customer_id)')
           .eq('garage_id', garageId)
-          .ilike('customers.phone', `%${query}%`);
+          .ilike('phone', `%${query}%`);
+
+        const customerMatchedVehicles = (cData || []).flatMap((customer: any) =>
+          (customer.vehicles || []).map((vehicle: any) => ({
+            ...vehicle,
+            customers: {
+              full_name: customer.full_name,
+              phone: customer.phone,
+            },
+          }))
+        );
 
         // Deduplicate
-        const merged = [...(vData || []), ...(cData || [])];
+        const merged = [...(vData || []), ...customerMatchedVehicles];
         const unique = Array.from(new Set(merged.map(a => a.id))).map(id => merged.find(a => a.id === id));
         
         setResults(unique);

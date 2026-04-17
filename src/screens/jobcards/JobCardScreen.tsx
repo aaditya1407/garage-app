@@ -75,7 +75,11 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const fetchVehicles = (cId: string) => {
-    supabase.from('vehicles').select('id, make, model, license_plate').eq('customer_id', cId)
+    supabase
+    .from('vehicles')
+    .select('id, make, model, license_plate')
+    .eq('customer_id', cId)
+    .eq('garage_id', garageId)
     .then(({ data }) => setVehicles(data || []));
   };
 
@@ -208,9 +212,18 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
       const inventoryLines = (estimateData?.partLines || []).filter((l: any) => l.inventoryItemId);
       for (const line of inventoryLines) {
         // Fetch current stock, decrement by 1
-        const { data: inv } = await supabase.from('inventory').select('stock_quantity').eq('id', line.inventoryItemId).single();
+        const { data: inv } = await supabase
+          .from('inventory')
+          .select('stock_quantity')
+          .eq('id', line.inventoryItemId)
+          .eq('garage_id', garageId)
+          .single();
         if (inv && inv.stock_quantity > 0) {
-          await supabase.from('inventory').update({ stock_quantity: inv.stock_quantity - 1 }).eq('id', line.inventoryItemId);
+          await supabase
+            .from('inventory')
+            .update({ stock_quantity: inv.stock_quantity - 1 })
+            .eq('id', line.inventoryItemId)
+            .eq('garage_id', garageId);
         }
       }
       

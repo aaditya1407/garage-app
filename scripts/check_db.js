@@ -1,8 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
 
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY');
+}
+
 const supabase = createClient(
-  'https://jboqbhpbyamtphupkwzd.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impib3FiaHBieWFtdHBodXBrd3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzQ5NzYsImV4cCI6MjA5MDI1MDk3Nn0.odEGNkLEM4TL_uam0Gp7RNFI0yvVcVemdmNTmMrD544'
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 async function check() {
