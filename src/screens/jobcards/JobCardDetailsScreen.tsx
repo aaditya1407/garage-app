@@ -26,7 +26,7 @@ const COMPLAINT_KEYS = ['Engine', 'Brake', 'Suspension', 'Electrical', 'AC'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { jobId } = route.params;
+  const { jobId, garageId } = route.params;
 
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<any>(null);
@@ -72,6 +72,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           )
         `)
         .eq('id', jobId)
+        .eq('garage_id', garageId)
         .single();
 
       if (error) throw error;
@@ -80,7 +81,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       let technicianName = 'Unassigned';
 
       if (data.advisor_id) {
-        const { data: staffAd } = await supabase.from('garage_staff').select('full_name').eq('id', data.advisor_id).maybeSingle();
+        const { data: staffAd } = await supabase.from('garage_staff').select('full_name').eq('id', data.advisor_id).eq('garage_id', garageId).maybeSingle();
         if (staffAd) advisorName = staffAd.full_name;
         else {
           const { data: profAd } = await supabase.from('profiles').select('full_name').eq('id', data.advisor_id).maybeSingle();
@@ -89,7 +90,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       }
 
       if (data.assigned_technician_id) {
-        const { data: staffTech } = await supabase.from('garage_staff').select('full_name').eq('id', data.assigned_technician_id).maybeSingle();
+        const { data: staffTech } = await supabase.from('garage_staff').select('full_name').eq('id', data.assigned_technician_id).eq('garage_id', garageId).maybeSingle();
         if (staffTech) technicianName = staffTech.full_name;
         else {
           const { data: profTech } = await supabase.from('profiles').select('full_name').eq('id', data.assigned_technician_id).maybeSingle();
@@ -127,12 +128,13 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
     } catch (err) {
       console.error('Error fetching job details:', err);
       Alert.alert('Error', 'Could not load job card details.');
+      navigation.goBack();
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(useCallback(() => { fetchJobDetails(); }, [jobId]));
+  useFocusEffect(useCallback(() => { fetchJobDetails(); }, [garageId, jobId]));
 
   // ── Save Details ───────────────────────────────────────────────────────────
   const saveDetails = async () => {
@@ -164,7 +166,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           }
       }
 
-      let detailUpdateQuery = supabase.from('job_cards').update({
+      const { error } = await supabase.from('job_cards').update({
         odometer: parseInt(editOdometer) || 0,
         fuel_level: editFuelLevel,
         bay_number: editBayNumber || null,
@@ -175,9 +177,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
         job_type: editJobType,
         inspection_data: editInspectionData || {},
         images: uploadedUrls
-      }).eq('id', jobId);
-      if (job?.garage_id) detailUpdateQuery = detailUpdateQuery.eq('garage_id', job.garage_id);
-      const { error } = await detailUpdateQuery;
+      }).eq('id', jobId).eq('garage_id', garageId);
       if (error) throw error;
       setEditingDetails(false);
       fetchJobDetails();
@@ -199,16 +199,14 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 
     setSaving(true);
     try {
-      let financialUpdateQuery = supabase.from('job_cards').update({
+      const { error } = await supabase.from('job_cards').update({
         parts_lines: editPartLines.map(l => ({ name: l.name, isCustom: l.isCustom, cost: parseFloat(l.cost) || 0 })),
         parts_cost: partsCost,
         labour_cost: labour,
         gst_percent: gst,
         estimated_cost: total,
         approval_status: editApprovalStatus,
-      }).eq('id', jobId);
-      if (job?.garage_id) financialUpdateQuery = financialUpdateQuery.eq('garage_id', job.garage_id);
-      const { error } = await financialUpdateQuery;
+      }).eq('id', jobId).eq('garage_id', garageId);
       if (error) throw error;
       setEditingFinancials(false);
       fetchJobDetails();
@@ -226,9 +224,7 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
     try {
       const payload: any = { status: newStatus };
       if (newStatus === 'completed') payload.completed_at = new Date().toISOString();
-      let statusUpdateQuery = supabase.from('job_cards').update(payload).eq('id', jobId);
-      if (job?.garage_id) statusUpdateQuery = statusUpdateQuery.eq('garage_id', job.garage_id);
-      const { error } = await statusUpdateQuery;
+      const { error } = await supabase.from('job_cards').update(payload).eq('id', jobId).eq('garage_id', garageId);
       if (error) throw error;
       fetchJobDetails();
     } catch (err) {

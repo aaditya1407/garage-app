@@ -147,7 +147,7 @@ export const TechnicianDashboardScreen: React.FC<TechnicianDashboardScreenProps>
         key={item.id}
         style={styles.jobCard}
         activeOpacity={0.7}
-        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id })}
+        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id, garageId })}
       >
         {/* Top row: JC number + status */}
         <View style={styles.jobCardTop}>

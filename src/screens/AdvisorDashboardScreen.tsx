@@ -145,7 +145,7 @@ export const AdvisorDashboardScreen: React.FC<AdvisorDashboardScreenProps> = ({ 
       <TouchableOpacity
         style={styles.jobCard}
         activeOpacity={0.7}
-        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id })}
+        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id, garageId })}
       >
         <View style={styles.jobCardTop}>
           <Text style={styles.jobCardNumber}>{item.job_card_number}</Text>

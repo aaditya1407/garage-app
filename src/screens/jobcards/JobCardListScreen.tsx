@@ -97,7 +97,7 @@ export const JobCardListScreen: React.FC<Props> = ({ navigation, route }) => {
                </Chip>
            </View>
         )}
-        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id })}
+        onPress={() => navigation.navigate('JobCardDetails', { jobId: item.id, garageId })}
       />
     </Surface>
   );

@@ -57,12 +57,25 @@ export const StaffListScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleDelete = (id: string, name: string) => {
     const doDelete = async () => {
-      const { error } = await supabase.from('garage_staff').delete().eq('id', id);
-      if (!error) fetchStaff();
-      else {
+      const { data, error } = await supabase
+        .from('garage_staff')
+        .delete()
+        .eq('id', id)
+        .eq('garage_id', garageId)
+        .select('id');
+      if (error) {
         const msg = 'Failed to delete: ' + error.message;
         Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+        return;
       }
+
+      if (!data || data.length === 0) {
+        const msg = 'Failed to delete: staff member was not found for this garage.';
+        Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+        return;
+      }
+
+      fetchStaff();
     };
 
     if (Platform.OS === 'web') {

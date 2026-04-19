@@ -55,7 +55,15 @@ export const InventoryFormScreen: React.FC<Props> = ({ navigation, route }) => {
 
       let error;
       if (isEdit) {
-        ({ error } = await supabase.from('inventory').update(payload).eq('id', item.id));
+        const { data: updated, error: updateError } = await supabase
+          .from('inventory')
+          .update(payload)
+          .eq('id', item.id)
+          .eq('garage_id', garageId)
+          .select('id')
+          .maybeSingle();
+        error = updateError;
+        if (!error && !updated) throw new Error('Inventory item not found for this garage.');
       } else {
         ({ error } = await supabase.from('inventory').insert(payload));
       }

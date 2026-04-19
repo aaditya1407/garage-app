@@ -11,6 +11,7 @@ import { CustomerForm } from '../../components/CustomerForm';
 import { VehicleForm } from '../../components/VehicleForm';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import { deductInventoryStock } from '../../utils/inventory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JobCardForm'>;
 
@@ -208,24 +209,8 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
 
       if (error) throw error;
 
-      // ── Auto-deduct stock for inventory-linked parts
-      const inventoryLines = (estimateData?.partLines || []).filter((l: any) => l.inventoryItemId);
-      for (const line of inventoryLines) {
-        // Fetch current stock, decrement by 1
-        const { data: inv } = await supabase
-          .from('inventory')
-          .select('stock_quantity')
-          .eq('id', line.inventoryItemId)
-          .eq('garage_id', garageId)
-          .single();
-        if (inv && inv.stock_quantity > 0) {
-          await supabase
-            .from('inventory')
-            .update({ stock_quantity: inv.stock_quantity - 1 })
-            .eq('id', line.inventoryItemId)
-            .eq('garage_id', garageId);
-        }
-      }
+      await deductInventoryStock(garageId, estimateData?.partLines || []);
+
       
       if (Platform.OS !== 'web') Alert.alert("Job Card Generated", `JC Number: ${jobCardNumber} successfully initiated!`);
       navigation.goBack();

@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { generateInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
+import { deductInventoryStock } from '../../utils/inventory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BillingForm'>;
 
@@ -57,34 +58,45 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
     supabase.from('garages').select('garage_name').eq('id', garageId).single().then(({ data }) => setGarageName(data?.garage_name || 'Garage Manager'));
 
     const fetchJob = async () => {
-      const { data, error } = await supabase
-        .from('job_cards')
-        .select(`
-          job_card_number, parts_lines, labour_cost,
-          vehicles!inner(make, model, license_plate, customers!inner(full_name, phone))
-        `)
-        .eq('id', jobId)
-        .single();
-      
-      if (!error && data) {
-        setJobCardNumber(data.job_card_number);
-        const vehicleInfoRaw: any = data.vehicles || {};
-        setVehicleInfo(vehicleInfoRaw);
-        setCustomerInfo(vehicleInfoRaw.customers || {});
-        // Load original parts
-        if (data.parts_lines && Array.isArray(data.parts_lines)) {
-          setPartLines(data.parts_lines.map((p: any) => ({
-            id: p.id || String(Date.now() + Math.random()), 
-            name: p.name, 
-            cost: String(p.cost || 0)
-          })));
+      try {
+        const { data, error } = await supabase
+          .from('job_cards')
+          .select(`
+            job_card_number, parts_lines, labour_cost,
+            vehicles!inner(make, model, license_plate, customers!inner(full_name, phone))
+          `)
+          .eq('id', jobId)
+          .eq('garage_id', garageId)
+          .single();
+        
+        if (error) throw error;
+
+        if (data) {
+          setJobCardNumber(data.job_card_number);
+          const vehicleInfoRaw: any = data.vehicles || {};
+          setVehicleInfo(vehicleInfoRaw);
+          setCustomerInfo(vehicleInfoRaw.customers || {});
+          // Load original parts
+          if (data.parts_lines && Array.isArray(data.parts_lines)) {
+            setPartLines(data.parts_lines.map((p: any) => ({
+              id: p.id || String(Date.now() + Math.random()), 
+              name: p.name, 
+              cost: String(p.cost || 0)
+            })));
+          }
+          setLabourTotal(String(data.labour_cost || 0));
         }
-        setLabourTotal(String(data.labour_cost || 0));
+      } catch (err: any) {
+        const msg = err.message || 'This job card was not found for the selected garage.';
+        if (Platform.OS === 'web') window.alert(msg);
+        else Alert.alert('Error', msg);
+        navigation.goBack();
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchJob();
-  }, [jobId]);
+  }, [garageId, jobId, navigation]);
 
   // Derived calculations
   const partsSum = partLines.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
@@ -155,38 +167,13 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
       const { error: insertError } = await supabase.from('bills').insert(payload);
       if (insertError) throw insertError;
 
-      // ── Auto-deduct stock for newly added inventory-linked parts in bill
-      const inventoryLines = partLines.filter(l => l.inventoryItemId);
-      for (const line of inventoryLines) {
-        // Find if this was originally in the job card or just added now?
-        // Actually, if it was in job card, it was already deducted when job card was created!
-        // To be safe, we only deduct stock if this item was added *during* billing.
-        // Wait, if it was auto-populated from job card, does it have inventoryItemId?
-        // Let's assume we don't deduct stock here unless we know it's new. For simplicity, since the user 
-        // asked to add parts from inventory, we will do the deduction, but we must be careful not to double dip.
-        // If we added `inventoryItemId` to the new manual ones, we deduct.
-      }
-      // Simple loop to deduct stock: (For now, just doing it across all inventoryItemId present in partLines)
-      for (const line of inventoryLines) {
-          const { data: inv } = await supabase
-            .from('inventory')
-            .select('stock_quantity')
-            .eq('id', line.inventoryItemId)
-            .eq('garage_id', garageId)
-            .single();
-          if (inv && inv.stock_quantity > 0) {
-            await supabase
-              .from('inventory')
-              .update({ stock_quantity: inv.stock_quantity - 1 })
-              .eq('id', line.inventoryItemId)
-              .eq('garage_id', garageId);
-          }
-      }
+      await deductInventoryStock(garageId, partLines);
 
       const { error: updateError } = await supabase
         .from('job_cards')
         .update({ payment_status: 'Paid' })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .eq('garage_id', garageId);
       if (updateError) throw updateError;
 
       // ── Generate PDF ──

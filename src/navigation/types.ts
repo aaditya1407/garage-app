@@ -10,7 +10,7 @@ export type RootStackParamList = {
   VehicleForm: { garageId: string };
   JobCardForm: { garageId: string };
   JobCardList: { garageId: string };
-  JobCardDetails: { jobId: string };
+  JobCardDetails: { jobId: string; garageId: string };
   InventoryList: { garageId: string };
   InventoryForm: { garageId: string; item?: any };
   BillingQueue: { garageId: string };

@@ -53,11 +53,15 @@ export const StaffFormScreen: React.FC<Props> = ({ route, navigation }) => {
       };
 
       if (isEdit) {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('garage_staff')
           .update(payload)
-          .eq('id', staff.id);
+          .eq('id', staff.id)
+          .eq('garage_id', garageId)
+          .select('id')
+          .maybeSingle();
         if (error) throw error;
+        if (!updated) throw new Error('Staff member not found for this garage.');
       } else {
         const { error } = await supabase.from('garage_staff').insert(payload);
         if (error) {

@@ -45,19 +45,31 @@ export const UnifiedAssetSearch: React.FC<Props> = ({ garageId, onAssetSelected 
 
         const { data: cData } = await supabase
           .from('customers')
-          .select('full_name, phone, vehicles(id, make, model, license_plate, customer_id)')
+          .select('id, full_name, phone')
           .eq('garage_id', garageId)
           .ilike('phone', `%${query}%`);
 
-        const customerMatchedVehicles = (cData || []).flatMap((customer: any) =>
-          (customer.vehicles || []).map((vehicle: any) => ({
-            ...vehicle,
-            customers: {
-              full_name: customer.full_name,
-              phone: customer.phone,
-            },
-          }))
-        );
+        const customerIds = (cData || []).map((customer: any) => customer.id);
+        const customerById = new Map((cData || []).map((customer: any) => [customer.id, customer]));
+        let customerMatchedVehicles: any[] = [];
+        if (customerIds.length > 0) {
+          const { data: vehicleData } = await supabase
+            .from('vehicles')
+            .select('id, make, model, license_plate, customer_id')
+            .eq('garage_id', garageId)
+            .in('customer_id', customerIds);
+
+          customerMatchedVehicles = (vehicleData || []).map((vehicle: any) => {
+            const customer: any = customerById.get(vehicle.customer_id);
+            return {
+              ...vehicle,
+              customers: {
+                full_name: customer?.full_name,
+                phone: customer?.phone,
+              },
+            };
+          });
+        }
 
         // Deduplicate
         const merged = [...(vData || []), ...customerMatchedVehicles];
