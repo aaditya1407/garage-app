@@ -3,5 +3,27 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.expo": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/.kotlin": true,
+    "**/android": true,
+    "**/ios": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.expo": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/package-lock.json": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/node_modules/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true
   }
 }

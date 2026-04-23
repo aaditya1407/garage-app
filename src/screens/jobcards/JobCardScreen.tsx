@@ -15,7 +15,7 @@ import { deductInventoryStock } from '../../utils/inventory';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JobCardForm'>;
 
-interface CustomerRecord { id: string; full_name: string; }
+interface CustomerRecord { id: string; full_name: string; phone?: string; }
 interface VehicleRecord { id: string; make: string; model: string; license_plate: string; }
 interface TechnicianRecord { id: string; full_name: string; }
 
@@ -71,7 +71,7 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
   const [internalNotes, setInternalNotes] = useState('');
 
   const fetchCustomers = () => {
-    supabase.from('customers').select('id, full_name').eq('garage_id', garageId)
+    supabase.from('customers').select('id, full_name, phone').eq('garage_id', garageId)
     .then(({ data }) => setCustomers(data || []));
   };
 
@@ -211,7 +211,61 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
 
       await deductInventoryStock(garageId, estimateData?.partLines || []);
 
-      
+      // Trigger WhatsApp Notification with Job Card PDF
+      const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+      if (selectedCustomer?.phone) {
+        const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+        const vehicleLabel = selectedVehicle
+          ? `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate.toUpperCase()})`
+          : '—';
+        const partsList = (estimateData?.partLines || []).map((p: any) => `${p.name}: ₹${p.cost}`).join(', ') || 'None';
+        const totalCost = `₹${(estimateData?.totalCost || 0).toLocaleString('en-IN')}`;
+
+        // Construct a lightweight job object for PDF generation
+        const jobForPDF = {
+          garage_id: garageId,
+          job_card_number: jobCardNumber,
+          odometer: parseInt(odometer),
+          fuel_level: fuelLevel,
+          bay_number: bayNumber,
+          job_type: jobType,
+          complaint_categories: activeComplaints,
+          description,
+          parts_lines: estimateData?.partLines || [],
+          parts_cost: estimateData?.partsCost || 0,
+          labour_cost: estimateData?.labourCost || 0,
+          gst_percent: estimateData?.gstPercent || 0,
+          estimated_cost: estimateData?.totalCost || 0,
+          approval_status: estimateData?.approvalStatus || 'Pending',
+          vehicles: {
+            make: selectedVehicle?.make || '',
+            model: selectedVehicle?.model || '',
+            license_plate: selectedVehicle?.license_plate || '',
+            vin: null,
+            customers: { full_name: selectedCustomer.full_name, phone: selectedCustomer.phone }
+          },
+        };
+
+        // Fire-and-forget: generate PDF then send WhatsApp
+        Promise.all([
+          import('../../services/whatsappService'),
+          import('../../utils/jobCardPDF').then(m => m.generateAndUploadJobCardPDF(jobForPDF))
+        ]).then(([{ sendMsg91WhatsApp }, pdfUrl]) => {
+          sendMsg91WhatsApp(selectedCustomer.phone!, {
+            name: 'job_created_template',
+            variables: [
+              selectedCustomer.full_name,
+              jobCardNumber,
+              vehicleLabel,
+              partsList,
+              totalCost,
+            ],
+            documentUrl: pdfUrl || undefined,
+            documentFileName: `JobCard_${jobCardNumber}.pdf`,
+          });
+        }).catch(err => console.warn('[WhatsApp] Failed to send job created notification:', err));
+      }
+
       if (Platform.OS !== 'web') Alert.alert("Job Card Generated", `JC Number: ${jobCardNumber} successfully initiated!`);
       navigation.goBack();
 
