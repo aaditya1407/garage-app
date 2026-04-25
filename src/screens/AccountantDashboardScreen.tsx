@@ -198,7 +198,15 @@ export const AccountantDashboardScreen: React.FC<AccountantDashboardScreenProps>
             activeOpacity={0.75}
           >
             <Text style={styles.actionBtnIcon}>📝</Text>
-            <Text style={[styles.actionBtnLabel, { color: C.amber }]}>Generate Bill</Text>
+            <Text style={[styles.actionBtnLabel, { color: C.amber }]}>Unbilled Invoice</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: C.accentSoft, borderColor: C.accent + '55' }]}
+            onPress={() => navigation.navigate('CreateInvoice', { garageId })}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.actionBtnIcon}>🧾</Text>
+            <Text style={[styles.actionBtnLabel, { color: C.accent }]}>New Invoice</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: C.purpleSoft, borderColor: C.purple + '55' }]}
@@ -338,11 +346,12 @@ const styles = StyleSheet.create({
   alertArrow: { fontSize: 22, fontWeight: '800' },
 
   // Quick Actions
-  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
   actionBtn: {
     flex: 1,
+    minWidth: '28%',
     borderRadius: 16,
-    paddingVertical: 20,
+    paddingVertical: 16,
     alignItems: 'center',
     borderWidth: 1,
   },

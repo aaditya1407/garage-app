@@ -147,7 +147,8 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
     { label: 'Customers',       icon: '👥', color: C.purple,  bg: C.purpleSoft,  onPress: () => navigation.navigate('CustomerList', { garageId }) },
     { label: 'Vehicles',        icon: '🚗', color: C.cyan,    bg: C.cyanSoft,    onPress: () => navigation.navigate('VehicleList',  { garageId }) },
     { label: 'Parts Inventory', icon: '📦', color: C.green,   bg: C.greenSoft,   onPress: () => navigation.navigate('InventoryList',{ garageId }) },
-    { label: 'Invoice History', icon: '🧾', color: C.purple,  bg: C.purpleSoft,  onPress: () => navigation.navigate('InvoiceList',  { garageId }) },
+    { label: 'New Invoice',     icon: '🧾', color: C.amber,   bg: C.amberSoft,   onPress: () => navigation.navigate('CreateInvoice', { garageId }) },
+    { label: 'Invoice History', icon: '🧧', color: C.purple,  bg: C.purpleSoft,  onPress: () => navigation.navigate('InvoiceList',  { garageId }) },
     { label: 'Manage Staff',    icon: '🛠️', color: C.cyan,    bg: C.cyanSoft,    onPress: () => navigation.navigate('StaffList',    { garageId }) },
   ];
 
