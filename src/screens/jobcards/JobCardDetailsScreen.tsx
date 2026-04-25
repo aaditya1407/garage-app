@@ -180,7 +180,10 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       }).eq('id', jobId).eq('garage_id', garageId);
       if (error) throw error;
       if (job?.vehicles?.customers?.phone) {
-        import('../../services/whatsappService').then(({ sendMsg91WhatsApp }) => {
+        Promise.all([
+          import('../../services/whatsappService'),
+          import('../../utils/garageInfo').then(m => m.fetchGarageInfo(garageId))
+        ]).then(([{ sendMsg91WhatsApp }, garageInfo]) => {
           sendMsg91WhatsApp(job.vehicles.customers.phone, {
             name: 'status_update_template',
             variables: [
@@ -188,6 +191,8 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
               job.job_card_number,
               'Service Details Updated',
               `Odometer: ${editOdometer} KM | Complaints: ${editComplaints.join(', ') || 'None'}`,
+              garageInfo?.garage_name || 'Our Garage',
+              garageInfo?.phone || '',
             ],
           });
         });
@@ -223,7 +228,10 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       if (error) throw error;
       if (job?.vehicles?.customers?.phone) {
         const partsSummary = editPartLines.map(l => `${l.name || 'Custom'}: ₹${l.cost}`).join(', ') || 'None';
-        import('../../services/whatsappService').then(({ sendMsg91WhatsApp }) => {
+        Promise.all([
+          import('../../services/whatsappService'),
+          import('../../utils/garageInfo').then(m => m.fetchGarageInfo(garageId))
+        ]).then(([{ sendMsg91WhatsApp }, garageInfo]) => {
           sendMsg91WhatsApp(job.vehicles.customers.phone, {
             name: 'status_update_template',
             variables: [
@@ -231,6 +239,8 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
               job.job_card_number,
               'Estimate & Parts Updated',
               `Parts: ${partsSummary} | Total: ₹${total.toLocaleString('en-IN')}`,
+              garageInfo?.garage_name || 'Our Garage',
+              garageInfo?.phone || '',
             ],
           });
         });
@@ -254,15 +264,21 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       const { error } = await supabase.from('job_cards').update(payload).eq('id', jobId).eq('garage_id', garageId);
       if (error) throw error;
       if (job?.vehicles?.customers?.phone) {
-        import('../../services/whatsappService').then(({ sendMsg91WhatsApp }) => {
+        Promise.all([
+          import('../../services/whatsappService'),
+          import('../../utils/garageInfo').then(m => m.fetchGarageInfo(garageId))
+        ]).then(([{ sendMsg91WhatsApp }, garageInfo]) => {
+          const garageName = garageInfo?.garage_name || 'Our Garage';
+          const garagePhone = garageInfo?.phone || '';
           if (newStatus === 'completed') {
             sendMsg91WhatsApp(job.vehicles.customers.phone, {
               name: 'job_completed_template',
               variables: [
                 job.vehicles.customers.full_name,
                 job.job_card_number,
-                `₹${Number(job.estimated_cost || 0).toLocaleString('en-IN')}`,
                 job.final_note || 'Your vehicle is ready for pickup.',
+                garageName,
+                garagePhone,
               ],
             });
           } else {
@@ -273,6 +289,8 @@ export const JobCardDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
                 job.job_card_number,
                 'Job Status Changed',
                 newStatus.replace('_', ' ').toUpperCase(),
+                garageName,
+                garagePhone,
               ],
             });
           }

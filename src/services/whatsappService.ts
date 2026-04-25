@@ -1,7 +1,9 @@
+import { supabase } from '../lib/supabase';
+
 export interface WhatsAppTemplateParams {
-  name: 'job_created_template' | 'status_update_template' | 'job_completed_template';
+  name: 'job_created_template' | 'status_update_template' | 'job_completed_template' | 'invoice_generated_template';
   variables: string[];
-  documentUrl?: string; // Only for job_created_template (PDF)
+  documentUrl?: string; // Only for job_created_template and invoice_generated_template
   documentFileName?: string;
 }
 
@@ -24,24 +26,14 @@ export const validatePhoneNumber = (phone: string): boolean => {
 };
 
 /**
- * Sends a WhatsApp message via MSG91's Outbound API.
- * Supports 3 templates:
- *   1. job_created_template  – with optional PDF document header
- *   2. status_update_template – plain body only
- *   3. job_completed_template – plain body only
+ * Sends a WhatsApp message by calling our secure Supabase Edge Function.
+ * This completely bypasses Web CORS issues by executing on the server!
  */
 export const sendMsg91WhatsApp = async (
   phone: string,
   params: WhatsAppTemplateParams
 ): Promise<boolean> => {
-  const authKey = process.env.EXPO_PUBLIC_MSG91_AUTH_KEY;
-  const integratedNumber = process.env.EXPO_PUBLIC_MSG91_INTEGRATED_NUMBER;
-
-  if (!authKey || authKey === 'your_msg91_auth_key') {
-    console.warn('[WhatsApp] MSG91 Auth Key not configured. Skipping notification.');
-    return false;
-  }
-
+  
   if (!validatePhoneNumber(phone)) {
     console.warn(`[WhatsApp] Invalid phone number: "${phone}". Skipping notification.`);
     return false;
@@ -49,71 +41,28 @@ export const sendMsg91WhatsApp = async (
 
   const formattedPhone = formatIndianPhoneNumber(phone);
 
-  // Build components array
-  const components: any[] = [];
-
-  // Add document header for job_created_template (PDF)
-  if (params.name === 'job_created_template' && params.documentUrl) {
-    components.push({
-      type: 'header',
-      parameters: [
-        {
-          type: 'document',
-          document: {
-            link: params.documentUrl,
-            filename: params.documentFileName || 'JobCard.pdf',
-          },
-        },
-      ],
-    });
-  }
-
-  // Add body parameters
-  components.push({
-    type: 'body',
-    parameters: params.variables.map(val => ({
-      type: 'text',
-      text: String(val),
-    })),
-  });
-
-  const payload = {
-    'integrated-number': integratedNumber,
-    content_type: 'template',
-    payload: {
-      to: formattedPhone,
-      type: 'template',
-      template: {
-        name: params.name,
-        language: { code: 'en' },
-        components,
-      },
-    },
-  };
-
   try {
-    const response = await fetch(
-      'https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          authkey: authKey,
-        },
-        body: JSON.stringify(payload),
+    // Invoke our custom Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('msg91-whatsapp', {
+      body: {
+        phone: formattedPhone,
+        params: params
       }
-    );
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || `MSG91 returned ${response.status}`);
+    if (error) {
+      throw new Error(error.message || 'Edge Function failed');
     }
 
-    console.log(`[WhatsApp] Sent "${params.name}" to ${formattedPhone}`, data);
+    if (data?.error) {
+       throw new Error(data.error);
+    }
+
+    console.log(`[WhatsApp] Sent "${params.name}" to ${formattedPhone} via Edge Function`, data);
     return true;
+
   } catch (error) {
-    console.error('[WhatsApp] API Error:', error);
+    console.error('[WhatsApp] Edge Function API Error:', error);
     return false;
   }
 };

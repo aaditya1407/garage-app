@@ -165,20 +165,43 @@ export const generateAndUploadJobCardPDF = async (job: any): Promise<string | nu
     </body>
     </html>`;
 
-    // Web: can't generate PDF, skip gracefully
+    let fileData: ArrayBuffer;
+
     if (Platform.OS === 'web') {
-      console.warn('PDF generation not supported on web.');
-      return null;
+      // Dynamically load html2pdf.js to generate PDF in the browser
+      const base64Pdf = await new Promise<string>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload = async () => {
+          try {
+            const worker = (window as any).html2pdf().set({
+              margin: [10, 10],
+              filename: 'document.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, logging: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(htmlContent).output('datauristring');
+            
+            const base64Uri = await worker;
+            resolve(base64Uri.split(',')[1]);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+
+      const { decode } = await import('base64-arraybuffer');
+      fileData = decode(base64Pdf);
+    } else {
+      // Native PDF generation using expo-print
+      const { uri } = await Print.printToFileAsync({ html: htmlContent, base64: false });
+      const FileSystem = await import('expo-file-system/legacy');
+      const base64 = await FileSystem.default.readAsStringAsync(uri, { encoding: 'base64' });
+      const { decode } = await import('base64-arraybuffer');
+      fileData = decode(base64);
     }
-
-    // Generate PDF using expo-print
-    const { uri } = await Print.printToFileAsync({ html: htmlContent, base64: false });
-
-    // Read PDF as base64
-    const FileSystem = await import('expo-file-system/legacy');
-    const base64 = await FileSystem.default.readAsStringAsync(uri, { encoding: 'base64' });
-    const { decode } = await import('base64-arraybuffer');
-    const fileData = decode(base64);
 
     const filePath = `${job.garage_id}/${job.job_card_number}/jobcard-${Date.now()}.pdf`;
     const { error: uploadError } = await supabase.storage

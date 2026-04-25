@@ -246,11 +246,14 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
           },
         };
 
-        // Fire-and-forget: generate PDF then send WhatsApp
+        // Fire-and-forget: generate PDF + fetch garage info, then send WhatsApp
         Promise.all([
           import('../../services/whatsappService'),
-          import('../../utils/jobCardPDF').then(m => m.generateAndUploadJobCardPDF(jobForPDF))
-        ]).then(([{ sendMsg91WhatsApp }, pdfUrl]) => {
+          import('../../utils/jobCardPDF').then(m => m.generateAndUploadJobCardPDF(jobForPDF)),
+          import('../../utils/garageInfo').then(m => m.fetchGarageInfo(garageId))
+        ]).then(([{ sendMsg91WhatsApp }, pdfUrl, garageInfo]) => {
+          const garageName = garageInfo?.garage_name || 'Our Garage';
+          const garagePhone = garageInfo?.phone || '';
           sendMsg91WhatsApp(selectedCustomer.phone!, {
             name: 'job_created_template',
             variables: [
@@ -259,6 +262,8 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
               vehicleLabel,
               partsList,
               totalCost,
+              garageName,
+              garagePhone,
             ],
             documentUrl: pdfUrl || undefined,
             documentFileName: `JobCard_${jobCardNumber}.pdf`,
