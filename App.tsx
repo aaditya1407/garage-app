@@ -43,7 +43,7 @@ export default function App() {
   return (
     <SafeAreaProvider initialMetrics={Platform.OS === 'web' ? undefined : initialWindowMetrics}>
       <PaperProvider theme={appTheme}>
-        <NavigationContainer>
+        <NavigationContainer documentTitle={{ formatter: (options, route) => options?.title ? `${options.title} - WorkshopSeva` : 'WorkshopSeva' }}>
           <RootNavigator />
           <StatusBar style="auto" />
         </NavigationContainer>
