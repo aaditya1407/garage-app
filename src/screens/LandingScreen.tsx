@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ImageBackground, StatusBar, ScrollView } from 'react-native';
+import { View, StyleSheet, ImageBackground, StatusBar, ScrollView, Image } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
@@ -18,6 +18,7 @@ export const LandingScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.container}>
           
           <View style={styles.content}>
+            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>WorkshopSeva</Text>
             <Text style={styles.subtitle}>Streamlining your garage management with intelligence and ease.</Text>
           </View>
@@ -75,6 +76,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: '20%',
     alignItems: 'center',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 16,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: '#FFFFFF'
   },
   title: {
     fontSize: 48,
