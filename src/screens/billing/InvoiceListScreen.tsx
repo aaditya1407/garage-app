@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, Alert, Platform } from 'react-native';
-import { Text, Surface, Button, IconButton, Searchbar, Chip } from 'react-native-paper';
+import { Text, Surface, Button, IconButton, Searchbar, Chip, SegmentedButtons } from 'react-native-paper';
 import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
 import { generateInvoicePDF, generateAndUploadInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
 import { fetchGarageInfo } from '../../utils/garageInfo';
@@ -23,6 +24,10 @@ interface BillSummary {
   discount: number;
   manual_parts: any[];
   misc_items: any[];
+  customer_name?: string;
+  customer_phone?: string;
+  vehicle_info?: string;
+  reference_note?: string;
   job_cards: {
     job_card_number: string;
     vehicles: {
@@ -37,7 +42,7 @@ interface BillSummary {
   };
 }
 
-export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
+export const InvoiceListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { garageId } = route.params;
   const [bills, setBills] = useState<BillSummary[]>([]);
   const [filteredBills, setFilteredBills] = useState<BillSummary[]>([]);
@@ -46,10 +51,13 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [sendingWhatsAppFor, setSendingWhatsAppFor] = useState<string | null>(null);
   const [garageName, setGarageName] = useState('Garage Manager');
+  const [statusFilter, setStatusFilter] = useState('All');
 
-  useEffect(() => {
-    fetchData();
-  }, [garageId]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [garageId])
+  );
 
   const fetchData = async () => {
     try {
@@ -63,7 +71,7 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
         .select(`
           id, invoice_number, created_at, grand_total, payment_mode, status,
           parts_total, labour_total, cgst_amount, sgst_amount, discount,
-          manual_parts, misc_items,
+          manual_parts, misc_items, customer_name, customer_phone, vehicle_info, reference_note,
           job_cards (
             job_card_number,
             vehicles (
@@ -86,16 +94,28 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
     }
   };
 
+  useEffect(() => {
+    let filtered = bills;
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(b => b.status === statusFilter);
+    }
+    if (searchQuery) {
+      const lowerQ = searchQuery.toLowerCase();
+      filtered = filtered.filter(b => 
+        b.invoice_number.toLowerCase().includes(lowerQ) ||
+        b.customer_name?.toLowerCase().includes(lowerQ) ||
+        b.vehicle_info?.toLowerCase().includes(lowerQ) ||
+        b.reference_note?.toLowerCase().includes(lowerQ) ||
+        b.job_cards?.job_card_number?.toLowerCase().includes(lowerQ) ||
+        b.job_cards?.vehicles?.license_plate?.toLowerCase().includes(lowerQ) ||
+        b.job_cards?.vehicles?.customers?.full_name?.toLowerCase().includes(lowerQ)
+      );
+    }
+    setFilteredBills(filtered);
+  }, [bills, searchQuery, statusFilter]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    const lowerQ = query.toLowerCase();
-    const filtered = bills.filter(b => 
-      b.invoice_number.toLowerCase().includes(lowerQ) ||
-      b.job_cards?.job_card_number?.toLowerCase().includes(lowerQ) ||
-      b.job_cards?.vehicles?.license_plate?.toLowerCase().includes(lowerQ) ||
-      b.job_cards?.vehicles?.customers?.full_name?.toLowerCase().includes(lowerQ)
-    );
-    setFilteredBills(filtered);
   };
 
   const buildInvoiceData = (bill: BillSummary): InvoiceData => {
@@ -105,12 +125,12 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
       garageName,
       invoiceNumber: bill.invoice_number,
       date: bill.created_at,
-      customerName: c?.full_name || 'Customer',
-      customerPhone: c?.phone || 'N/A',
-      vehicleMake: v?.make || 'Unknown',
-      vehicleModel: v?.model || 'Vehicle',
-      licensePlate: v?.license_plate || 'N/A',
-      jobCardNumber: bill.job_cards?.job_card_number || 'N/A',
+      customerName: bill.customer_name || c?.full_name || 'Customer',
+      customerPhone: bill.customer_phone || c?.phone || 'N/A',
+      vehicleMake: bill.vehicle_info || v?.make || 'Unknown',
+      vehicleModel: bill.vehicle_info ? '' : (v?.model || 'Vehicle'),
+      licensePlate: bill.vehicle_info ? '' : (v?.license_plate || 'N/A'),
+      jobCardNumber: bill.reference_note || bill.job_cards?.job_card_number || 'Direct Invoice',
       partsLines: Array.isArray(bill.manual_parts) ? bill.manual_parts.map((p: any) => ({ name: p.name, cost: parseFloat(p.cost) || 0 })) : [],
       miscLines: Array.isArray(bill.misc_items) ? bill.misc_items.map((m: any) => ({ name: m.name, cost: parseFloat(m.cost) || 0 })) : [],
       partsTotal: bill.parts_total || 0,
@@ -138,7 +158,7 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
   };
 
   const handleWhatsAppInvoice = async (bill: BillSummary) => {
-    const phone = bill.job_cards?.vehicles?.customers?.phone;
+    const phone = bill.customer_phone || bill.job_cards?.vehicles?.customers?.phone;
     if (!phone) {
       Alert.alert('Error', 'No customer phone number available to send WhatsApp.');
       return;
@@ -169,6 +189,10 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
       });
 
       if (success) {
+        if (bill.status === 'Draft') {
+          await supabase.from('bills').update({ status: 'Unpaid' }).eq('id', bill.id);
+          setBills(prev => prev.map(b => b.id === bill.id ? { ...b, status: 'Unpaid' } : b));
+        }
         if (Platform.OS !== 'web') Alert.alert('Success', 'Invoice sent via WhatsApp!');
       } else {
         throw new Error('Failed to send WhatsApp message. Check console for details.');
@@ -179,6 +203,19 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
       console.error(err);
     } finally {
       setSendingWhatsAppFor(null);
+    }
+  };
+
+  const handleRecordPayment = async (bill: BillSummary) => {
+    try {
+      const { error } = await supabase.from('bills').update({ status: 'Paid' }).eq('id', bill.id);
+      if (error) throw error;
+      setBills(prev => prev.map(b => b.id === bill.id ? { ...b, status: 'Paid' } : b));
+      if (Platform.OS === 'web') window.alert('Payment recorded successfully!');
+      else Alert.alert('Success', 'Payment recorded successfully!');
+    } catch (err: any) {
+      if (Platform.OS === 'web') window.alert('Error recording payment: ' + err.message);
+      else Alert.alert('Error', 'Error recording payment: ' + err.message);
     }
   };
 
@@ -200,6 +237,17 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
           style={styles.searchbar}
           elevation={0}
         />
+        <SegmentedButtons
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          buttons={[
+            { value: 'All', label: 'All' },
+            { value: 'Draft', label: 'Draft' },
+            { value: 'Unpaid', label: 'Unpaid' },
+            { value: 'Paid', label: 'Paid' },
+          ]}
+          style={{ marginTop: 12 }}
+        />
       </Surface>
 
       <FlatList
@@ -215,6 +263,8 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
           const v = item.job_cards?.vehicles as any;
           const c = v?.customers as any;
           const isGenerating = generatingFor === item.id;
+          const customerName = item.customer_name || c?.full_name || 'Unknown';
+          const vehicleLabel = item.vehicle_info || v?.license_plate || 'N/A';
 
           return (
             <Surface style={styles.card} elevation={1}>
@@ -227,9 +277,9 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
               </View>
 
               <View style={styles.detailsRow}>
-                <Text variant="bodyMedium" style={{ fontWeight: 'bold' }}>{c?.full_name || 'Unknown'}</Text>
+                <Text variant="bodyMedium" style={{ fontWeight: 'bold' }}>{customerName}</Text>
                 <Chip icon="car" compact style={styles.plateChip}>
-                  {v?.license_plate || 'N/A'}
+                  {vehicleLabel}
                 </Chip>
               </View>
 
@@ -239,8 +289,36 @@ export const InvoiceListScreen: React.FC<Props> = ({ route }) => {
                   {item.status === 'Paid' && (
                     <Chip compact style={{ backgroundColor: '#E8F5E9' }} textStyle={{ color: '#2E7D32', fontSize: 10 }}>Paid</Chip>
                   )}
+                  {item.status === 'Unpaid' && (
+                    <Chip compact style={{ backgroundColor: '#FFF3E0' }} textStyle={{ color: '#E65100', fontSize: 10 }}>Unpaid</Chip>
+                  )}
+                  {item.status === 'Draft' && (
+                    <Chip compact style={{ backgroundColor: '#ECEFF1' }} textStyle={{ color: '#607D8B', fontSize: 10 }}>Draft</Chip>
+                  )}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {item.status === 'Unpaid' && (
+                    <Button
+                      mode="contained-tonal"
+                      buttonColor="#E8F5E9"
+                      textColor="#2E7D32"
+                      onPress={() => handleRecordPayment(item)}
+                      icon="cash-check"
+                      compact
+                    >
+                      Pay
+                    </Button>
+                  )}
+                  {(item.status === 'Draft' || item.status === 'Unpaid') && (
+                    <Button 
+                      mode="contained-tonal" 
+                      onPress={() => navigation.navigate('CreateInvoice', { garageId, editBillId: item.id })} 
+                      icon="pencil"
+                      compact
+                    >
+                      Edit
+                    </Button>
+                  )}
                   <Button 
                     mode="contained-tonal" 
                     onPress={() => handleViewInvoice(item)} 

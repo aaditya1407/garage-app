@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { generateInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
+import { deductInventoryStock } from '../../utils/inventory';
 import { PART_CATEGORIES } from '../../constants/parts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateInvoice'>;
@@ -19,6 +20,8 @@ interface LineItem {
   id: string;
   name: string;
   cost: string;
+  inventoryItemId?: string;
+  deducted?: boolean;
 }
 
 interface CustomerSummary {
@@ -36,7 +39,9 @@ interface VehicleSummary {
 }
 
 export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { garageId } = route.params;
+  const { garageId, editBillId } = route.params;
+  const isEditing = !!editBillId;
+  const [existingInvoiceNo, setExistingInvoiceNo] = useState('');
 
   const [garageName, setGarageName] = useState('Garage Manager');
   const [submitting, setSubmitting] = useState(false);
@@ -58,9 +63,11 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Tax & Payment
   const [discount, setDiscount] = useState('0');
+  const [amountPaid, setAmountPaid] = useState('0');
   const [cgstPercent, setCgstPercent] = useState('9');
   const [sgstPercent, setSgstPercent] = useState('9');
   const [paymentMode, setPaymentMode] = useState('Cash');
+  const [invoiceStatus, setInvoiceStatus] = useState('Paid');
 
   // Parts picker
   const [showPartPicker, setShowPartPicker] = useState(false);
@@ -95,6 +102,52 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [showPartPicker, garageId]);
 
+  // Load bill for editing
+  useEffect(() => {
+    if (editBillId) {
+      supabase.from('bills').select(`
+        *,
+        job_cards (
+          job_card_number,
+          vehicles (
+            id, make, model, license_plate, customer_id,
+            customers (id, full_name, phone)
+          )
+        )
+      `).eq('id', editBillId).single().then(({ data }) => {
+        if (data) {
+          setExistingInvoiceNo(data.invoice_number || '');
+          if (data.job_cards && data.job_cards.vehicles) {
+             const v = data.job_cards.vehicles as any;
+             const c = v?.customers;
+             if (c) setSelectedCustomer({ id: c.id, full_name: c.full_name, phone: c.phone });
+             if (v) setSelectedVehicle({ id: v.id, make: v.make, model: v.model, license_plate: v.license_plate, customer_id: v.customer_id });
+             setReferenceNote(data.job_cards.job_card_number);
+          } else {
+             if (data.customer_name) {
+                setSelectedCustomer({ id: 'custom', full_name: data.customer_name, phone: data.customer_phone || '' });
+             }
+             if (data.vehicle_info) {
+                setSelectedVehicle({ id: 'custom', make: data.vehicle_info, model: 'Vehicle', license_plate: '', customer_id: 'custom' });
+             }
+             setReferenceNote(data.reference_note || '');
+          }
+          setPartLines(data.manual_parts || []);
+          setLabourTotal(String(data.labour_total || 0));
+          setMiscLines(data.misc_items || []);
+          setDiscount(String(data.discount || 0));
+          if (data.amount_paid !== undefined) setAmountPaid(String(data.amount_paid));
+          if (data.labour_total > 0) {
+            setCgstPercent(String(Math.round((data.cgst_amount / data.labour_total) * 100)));
+            setSgstPercent(String(Math.round((data.sgst_amount / data.labour_total) * 100)));
+          }
+          setPaymentMode(data.payment_mode || 'Cash');
+          setInvoiceStatus(data.status || 'Paid');
+        }
+      });
+    }
+  }, [editBillId]);
+
   // ── Derived totals ──
   const partsSum = partLines.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
   const miscSum  = miscLines.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
@@ -102,11 +155,18 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
   const cgstAmt = Math.round(labourAmt * ((parseFloat(cgstPercent) || 0) / 100));
   const sgstAmt = Math.round(labourAmt * ((parseFloat(sgstPercent) || 0) / 100));
   const discountAmt = parseFloat(discount) || 0;
+  const partialPaidAmt = parseFloat(amountPaid) || 0;
   const grandTotal = partsSum + miscSum + labourAmt + cgstAmt + sgstAmt - discountAmt;
 
   // ── Parts handlers ──
-  const handleAddPart = (name: string, price?: number) => {
-    setPartLines(prev => [...prev, { id: String(Date.now() + Math.random()), name: name === 'Custom Part' ? '' : name, cost: price != null ? String(price) : '' }]);
+  const handleAddPart = (name: string, price?: number, inventoryItemId?: string) => {
+    setPartLines(prev => [...prev, { 
+      id: String(Date.now() + Math.random()), 
+      name: name === 'Custom Part' ? '' : name, 
+      cost: price != null ? String(price) : '',
+      inventoryItemId,
+      deducted: false
+    }]);
     setShowPartPicker(false);
     setPartSearch('');
   };
@@ -129,6 +189,11 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Validation', msg);
       return;
     }
+    if (!selectedVehicle) {
+      const msg = 'Please select a vehicle. A vehicle must be selected to generate an invoice.';
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Validation', msg);
+      return;
+    }
     if (grandTotal < 0) {
       const msg = 'Grand total cannot be negative.';
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
@@ -137,32 +202,56 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
-      const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+      const invoiceNumber = isEditing && existingInvoiceNo ? existingInvoiceNo : `INV-${Date.now().toString().slice(-6)}`;
 
-      const payload = {
-        garage_id: garageId,
-        job_card_id: null,           // no linked job card
-        invoice_number: invoiceNumber,
-        parts_total: partsSum,
-        manual_parts: partLines,
-        labour_total: labourAmt,
-        misc_items: miscLines,
-        discount: discountAmt,
-        cgst_amount: cgstAmt,
-        sgst_amount: sgstAmt,
-        grand_total: grandTotal,
-        payment_mode: paymentMode,
-        status: 'Paid',
-        customer_name: selectedCustomer.full_name,
-        customer_phone: selectedCustomer.phone,
-        vehicle_info: selectedVehicle
-          ? `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`
-          : null,
-        reference_note: referenceNote || null,
-      };
+      if (isEditing) {
+        const updatePayload = {
+          parts_total: partsSum,
+          manual_parts: partLines.map(p => ({ ...p, deducted: true })),
+          labour_total: labourAmt,
+          misc_items: miscLines,
+          discount: discountAmt,
+          amount_paid: partialPaidAmt,
+          cgst_amount: cgstAmt,
+          sgst_amount: sgstAmt,
+          grand_total: grandTotal,
+          payment_mode: paymentMode,
+          status: invoiceStatus,
+        };
+        const { error: updateError } = await supabase.from('bills').update(updatePayload).eq('id', editBillId);
+        if (updateError) throw updateError;
+      } else {
+        const payload = {
+          garage_id: garageId,
+          job_card_id: null,           // no linked job card
+          invoice_number: invoiceNumber,
+          parts_total: partsSum,
+          manual_parts: partLines.map(p => ({ ...p, deducted: true })),
+          labour_total: labourAmt,
+          misc_items: miscLines,
+          discount: discountAmt,
+          amount_paid: partialPaidAmt,
+          cgst_amount: cgstAmt,
+          sgst_amount: sgstAmt,
+          grand_total: grandTotal,
+          payment_mode: paymentMode,
+          status: invoiceStatus,
+          customer_name: selectedCustomer.full_name,
+          customer_phone: selectedCustomer.phone,
+          vehicle_info: selectedVehicle
+            ? `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`
+            : null,
+          reference_note: referenceNote || null,
+        };
 
-      const { error: insertError } = await supabase.from('bills').insert(payload);
-      if (insertError) throw insertError;
+        const { error: insertError } = await supabase.from('bills').insert(payload);
+        if (insertError) throw insertError;
+      }
+
+      const partsToDeduct = partLines.filter(p => !p.deducted && p.inventoryItemId);
+      if (partsToDeduct.length > 0) {
+        await deductInventoryStock(garageId, partsToDeduct);
+      }
 
       // Generate PDF
       try {
@@ -193,8 +282,8 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       navigation.goBack();
-      const msg = `Invoice ${invoiceNumber} created successfully!`;
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Success', msg);
+      if (Platform.OS === 'web') window.alert(isEditing ? "Invoice updated successfully!" : "Invoice generated successfully!");
+      else Alert.alert("Success", isEditing ? "Invoice updated successfully!" : "Invoice generated successfully!");
     } catch (err: any) {
       const msg = 'Error: ' + err.message;
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', err.message);
@@ -312,9 +401,31 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
             <TextInput mode="outlined" label="CGST % (Labour)" value={cgstPercent} onChangeText={setCgstPercent} keyboardType="numeric" style={{ flex: 1, backgroundColor: '#fff' }} />
             <TextInput mode="outlined" label="SGST % (Labour)" value={sgstPercent} onChangeText={setSgstPercent} keyboardType="numeric" style={{ flex: 1, backgroundColor: '#fff' }} />
           </View>
-          <TextInput mode="outlined" label="Discount Amount" value={discount} onChangeText={setDiscount} keyboardType="numeric" left={<TextInput.Affix text="₹" />} style={{ backgroundColor: '#fff', marginBottom: 16 }} />
+          <TextInput
+            mode="outlined"
+            label="Discount Amount"
+            value={discount}
+            onChangeText={setDiscount}
+            keyboardType="numeric"
+            left={<TextInput.Affix text="₹" />}
+            style={{ backgroundColor: '#FFFFFF', marginBottom: 12 }}
+          />
+
+          <TextInput
+            mode="outlined"
+            label="Amount Paid (Partial Payment)"
+            value={amountPaid}
+            onChangeText={setAmountPaid}
+            keyboardType="numeric"
+            left={<TextInput.Affix text="₹" />}
+            style={{ backgroundColor: '#FFFFFF' }}
+          />
+
+          <Divider style={{ marginVertical: 16 }} />
           <Text variant="titleMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>Payment Mode</Text>
-          <SegmentedButtons value={paymentMode} onValueChange={setPaymentMode} buttons={[{ value: 'Cash', label: 'Cash' }, { value: 'UPI', label: 'UPI' }, { value: 'Card', label: 'Card' }]} />
+          <SegmentedButtons value={paymentMode} onValueChange={setPaymentMode} buttons={[{ value: 'Cash', label: 'Cash' }, { value: 'UPI', label: 'UPI' }, { value: 'Card', label: 'Card' }]} style={{ marginBottom: 16 }} />
+          <Text variant="titleMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>Invoice Status</Text>
+          <SegmentedButtons value={invoiceStatus} onValueChange={setInvoiceStatus} buttons={[{ value: 'Draft', label: 'Draft' }, { value: 'Unpaid', label: 'Unpaid' }, { value: 'Paid', label: 'Paid' }]} />
         </Surface>
 
         {/* ── Totals Summary ── */}
@@ -325,10 +436,13 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.totRow}><Text>CGST (on Labour):</Text><Text>₹{cgstAmt}</Text></View>
           <View style={styles.totRow}><Text>SGST (on Labour):</Text><Text>₹{sgstAmt}</Text></View>
           <View style={styles.totRow}><Text style={{ color: '#D32F2F' }}>Discount:</Text><Text style={{ color: '#D32F2F' }}>-₹{discountAmt}</Text></View>
+          {partialPaidAmt > 0 && (
+            <View style={styles.totRow}><Text style={{ color: '#2E7D32' }}>Already Paid:</Text><Text style={{ color: '#2E7D32' }}>-₹{partialPaidAmt}</Text></View>
+          )}
           <Divider style={{ marginVertical: 12 }} />
           <View style={styles.totRow}>
-            <Text variant="titleLarge" style={{ fontWeight: 'bold', color: '#1565C0' }}>Grand Total</Text>
-            <Text variant="titleLarge" style={{ fontWeight: 'bold', color: '#1565C0' }}>₹{grandTotal}</Text>
+            <Text variant="titleLarge" style={{ fontWeight: 'bold', color: '#1565C0' }}>{partialPaidAmt > 0 ? 'Balance Due' : 'Grand Total'}</Text>
+            <Text variant="titleLarge" style={{ fontWeight: 'bold', color: '#1565C0' }}>₹{grandTotal - partialPaidAmt}</Text>
           </View>
         </Surface>
 
@@ -342,7 +456,7 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
           buttonColor="#1565C0"
           icon="file-document-plus"
         >
-          Generate Invoice
+          {isEditing ? 'Update Invoice' : 'Generate Invoice'}
         </Button>
       </ScrollView>
 
@@ -445,7 +559,7 @@ export const CreateInvoiceScreen: React.FC<Props> = ({ route, navigation }) => {
                           </Text>
                         </Chip>
                       )}
-                      onPress={() => handleAddPart(inv.part_name, inv.price)}
+                      onPress={() => handleAddPart(inv.part_name, inv.price, inv.id)}
                     />
                     <Divider />
                   </React.Fragment>

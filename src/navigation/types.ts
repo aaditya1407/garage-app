@@ -15,7 +15,7 @@ export type RootStackParamList = {
   InventoryForm: { garageId: string; item?: any };
   BillingQueue: { garageId: string };
   BillingForm: { garageId: string; jobId: string };
-  CreateInvoice: { garageId: string };
+  CreateInvoice: { garageId: string; editBillId?: string };
   InvoiceList: { garageId: string };
   StaffList: { garageId: string };
   StaffForm: { garageId: string; staff?: any };
