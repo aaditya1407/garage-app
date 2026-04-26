@@ -40,6 +40,7 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
   
   // Payment
   const [paymentMode, setPaymentMode] = useState('Cash');
+  const [invoiceStatus, setInvoiceStatus] = useState('Paid');
 
   // Parts Picker State
   const [showPartPicker, setShowPartPicker] = useState(false);
@@ -146,7 +147,10 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
-      const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+      // Check if a draft bill already exists
+      const { data: existingBill } = await supabase.from('bills').select('id, invoice_number').eq('job_card_id', jobId).single();
+      
+      const invoiceNumber = existingBill?.invoice_number || `INV-${Date.now().toString().slice(-6)}`;
       
       const payload = {
         garage_id: garageId,
@@ -161,17 +165,22 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
         sgst_amount: sgstAmt,
         grand_total: grandTotal,
         payment_mode: paymentMode,
-        status: 'Paid'
+        status: invoiceStatus
       };
 
-      const { error: insertError } = await supabase.from('bills').insert(payload);
-      if (insertError) throw insertError;
+      if (existingBill) {
+        const { error: updateError } = await supabase.from('bills').update(payload).eq('id', existingBill.id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase.from('bills').insert(payload);
+        if (insertError) throw insertError;
+      }
 
       await deductInventoryStock(garageId, partLines);
 
       const { error: updateError } = await supabase
         .from('job_cards')
-        .update({ payment_status: 'Paid' })
+        .update({ payment_status: invoiceStatus })
         .eq('id', jobId)
         .eq('garage_id', garageId);
       if (updateError) throw updateError;
@@ -296,6 +305,13 @@ export const BillingScreen: React.FC<Props> = ({ route, navigation }) => {
             value={paymentMode}
             onValueChange={setPaymentMode}
             buttons={[{ value: 'Cash', label: 'Cash' }, { value: 'UPI', label: 'UPI' }, { value: 'Card', label: 'Card' }]}
+            style={{ marginBottom: 16 }}
+          />
+          <Text variant="titleMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>Invoice Status</Text>
+          <SegmentedButtons
+            value={invoiceStatus}
+            onValueChange={setInvoiceStatus}
+            buttons={[{ value: 'Draft', label: 'Draft' }, { value: 'Unpaid', label: 'Unpaid' }, { value: 'Paid', label: 'Paid' }]}
             style={{ marginBottom: 16 }}
           />
         </Surface>

@@ -20,6 +20,7 @@ import { InventoryFormScreen } from '../screens/inventory/InventoryFormScreen';
 import { BillingQueueScreen } from '../screens/billing/BillingQueueScreen';
 import { BillingScreen } from '../screens/billing/BillingScreen';
 import { InvoiceListScreen } from '../screens/billing/InvoiceListScreen';
+import { CreateInvoiceScreen } from '../screens/billing/CreateInvoiceScreen';
 import { StaffListScreen } from '../screens/staff/StaffListScreen';
 import { StaffFormScreen } from '../screens/staff/StaffFormScreen';
 import { StaffLoginScreen } from '../screens/StaffLoginScreen';
@@ -45,6 +46,7 @@ const AppScreens = () => (
     <Stack.Screen name="BillingQueue" component={BillingQueueScreen} options={{ headerShown: true, title: 'Billing Queue' }} />
     <Stack.Screen name="BillingForm" component={BillingScreen} options={{ headerShown: true, title: 'Generate Bill' }} />
     <Stack.Screen name="InvoiceList" component={InvoiceListScreen} options={{ headerShown: true, title: 'Invoice History' }} />
+    <Stack.Screen name="CreateInvoice" component={CreateInvoiceScreen} options={{ headerShown: true, title: 'New Invoice' }} />
     <Stack.Screen name="StaffList" component={StaffListScreen} options={{ headerShown: true, title: 'Manage Staff' }} />
     <Stack.Screen name="StaffForm" component={StaffFormScreen} options={({ route }) => ({ headerShown: true, title: (route.params as any)?.staff ? 'Edit Staff' : 'Add Staff' })} />
     <Stack.Screen name="BranchManager" component={require('../screens/BranchManagerScreen').BranchManagerScreen} options={{ headerShown: true, title: 'Manage Branches' }} />

@@ -183,7 +183,7 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
           }
       }
 
-      const { error } = await supabase.from('job_cards').insert({
+      const { data: insertedJob, error } = await supabase.from('job_cards').insert({
         garage_id: garageId,
         vehicle_id: selectedVehicleId,
         advisor_id: currentAdvisorId,
@@ -205,9 +205,37 @@ export const JobCardScreen: React.FC<Props> = ({ navigation, route }) => {
         estimated_cost: estimateData?.totalCost || 0,
         approval_status: estimateData?.approvalStatus || 'Pending',
         status: 'open'
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      // Automatically create a Draft Bill for this Job Card
+      try {
+        const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+        const labourAmt = estimateData?.labourCost || 0;
+        const halfGst = (estimateData?.gstPercent || 0) / 2;
+        const draftCgst = Math.round(labourAmt * (halfGst / 100));
+        const draftSgst = Math.round(labourAmt * (halfGst / 100));
+        const grandTotal = (estimateData?.partsCost || 0) + labourAmt + draftCgst + draftSgst;
+
+        await supabase.from('bills').insert({
+          garage_id: garageId,
+          job_card_id: insertedJob.id,
+          invoice_number: invoiceNumber,
+          parts_total: estimateData?.partsCost || 0,
+          manual_parts: estimateData?.partLines || [],
+          labour_total: labourAmt,
+          misc_items: [],
+          discount: 0,
+          cgst_amount: draftCgst,
+          sgst_amount: draftSgst,
+          grand_total: grandTotal,
+          payment_mode: 'Cash',
+          status: 'Draft'
+        });
+      } catch (err) {
+        console.warn('Could not automatically create Draft invoice', err);
+      }
 
       await deductInventoryStock(garageId, estimateData?.partLines || []);
 

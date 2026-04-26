@@ -4,8 +4,10 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { SignupChoiceScreen } from '../screens/SignupChoiceScreen';
 import { GarageOnboardingScreen } from '../screens/GarageOnboardingScreen';
 import { StaffSignupScreen } from '../screens/StaffSignupScreen';
+import { LandingScreen } from '../screens/LandingScreen';
 
 export type AuthStackParamList = {
+  Landing: undefined;
   Login: undefined;
   SignupChoice: undefined;
   GarageOnboarding: undefined;
@@ -21,13 +23,18 @@ interface AuthNavigatorProps {
 export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff }) => {
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName="Landing"
       screenOptions={{
         headerStyle: { backgroundColor: '#FFFFFF' },
         headerShadowVisible: false,
         headerTintColor: '#333333',
       }}
     >
+      <Stack.Screen 
+        name="Landing" 
+        component={LandingScreen} 
+        options={{ headerShown: false }}
+      />
       <Stack.Screen 
         name="Login" 
         options={{ headerShown: false }}
