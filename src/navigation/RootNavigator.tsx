@@ -86,20 +86,28 @@ export const RootNavigator = () => {
 
   useEffect(() => {
     // Check Supabase session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        // Stale / invalid token — clear everything and boot to login
-        console.warn('Session restore failed, clearing stale session:', error.message);
-        supabase.auth.signOut();
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          // Stale / invalid token - clear everything and boot to login
+          console.warn('Session restore failed, clearing stale session:', error.message);
+          supabase.auth.signOut();
+          AsyncStorage.removeItem('staffSession');
+          setSession(null);
+          setStaffSession(null);
+          setIsLoading(false);
+          return;
+        }
+        setSession(session);
+        checkSessions();
+      })
+      .catch((error) => {
+        console.warn('Session restore crashed, showing public landing:', error);
         AsyncStorage.removeItem('staffSession');
         setSession(null);
         setStaffSession(null);
         setIsLoading(false);
-        return;
-      }
-      setSession(session);
-      checkSessions();
-    });
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
