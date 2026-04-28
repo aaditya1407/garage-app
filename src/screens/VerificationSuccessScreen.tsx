@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
@@ -16,12 +16,17 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [garageCode, setGarageCode] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const isRunning = useRef(false);
 
   useEffect(() => {
     executePendingRegistration();
   }, []);
 
   const executePendingRegistration = async () => {
+    // Guard against duplicate/concurrent execution
+    if (isRunning.current) return;
+    isRunning.current = true;
+
     try {
       const dataStr = await AsyncStorage.getItem('pendingGarageData');
       if (!dataStr) {
@@ -36,6 +41,21 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
       const userId = authData.session?.user?.id;
       if (!userId) {
         throw new Error("You are not fully authenticated yet.");
+      }
+
+      // Check if a garage already exists for this user (prevents duplicate branches)
+      const { data: existingGarage } = await supabase
+        .from('garages')
+        .select('id, garage_code')
+        .eq('owner_user_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingGarage) {
+        // Garage already created (likely from a previous run) — just show the code
+        setGarageCode(existingGarage.garage_code);
+        await AsyncStorage.removeItem('pendingGarageData');
+        return;
       }
 
       // Check if they already have a profile to avoid duplicates on refresh
@@ -79,9 +99,9 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
          // Profile exists, but maybe they refreshed the page. Try to get the garage code.
          const { data: userProfile } = await supabase.from('profiles').select('garage_id').eq('id', userId).single();
          if (userProfile?.garage_id) {
-           const { data: existingGarage } = await supabase.from('garages').select('garage_code').eq('id', userProfile.garage_id).single();
-           if (existingGarage) {
-             setGarageCode(existingGarage.garage_code);
+           const { data: existGarage } = await supabase.from('garages').select('garage_code').eq('id', userProfile.garage_id).single();
+           if (existGarage) {
+             setGarageCode(existGarage.garage_code);
              await AsyncStorage.removeItem('pendingGarageData');
            }
          }
@@ -91,6 +111,7 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
       setErrorMsg(err.message || "Something went wrong registering your garage.");
     } finally {
       setLoading(false);
+      isRunning.current = false;
     }
   };
 
