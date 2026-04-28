@@ -183,7 +183,7 @@ export const GarageOnboardingScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.modalText}>
               We've sent a verification link to your email address. Once verified, come back to the app to receive your unique Garage Code!
             </Text>
-            <Button title="Understood" onPress={() => setShowVerifyModal(false)} />
+            <Button title="Understood" onPress={() => { setShowVerifyModal(false); navigation.navigate('RegistrationThankYou'); }} />
           </View>
         </View>
       </Modal>
