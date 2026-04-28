@@ -9,6 +9,8 @@ import { Button } from '../components/Button';
 import { Dropdown } from '../components/Dropdown';
 import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '../navigation/AuthNavigator';
 
 
 // We hardcode Country as India for now based on requirements.
@@ -26,8 +28,9 @@ const garageSchema = z.object({
 });
 
 type GarageFormData = z.infer<typeof garageSchema>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'GarageOnboarding'>;
 
-export const GarageOnboardingScreen: React.FC = () => {
+export const GarageOnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
@@ -90,6 +93,16 @@ export const GarageOnboardingScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.topRow}>
+            <Text style={styles.brandText}>WorkshopSeva</Text>
+            <Button
+              title="Back to Home"
+              variant="outline"
+              onPress={() => navigation.navigate('Landing')}
+              style={styles.backBtn}
+            />
+          </View>
+
           <Text style={styles.title}>Register Garage</Text>
           <Text style={styles.subtitle}>Set up your new workspace as an Admin.</Text>
 
@@ -195,6 +208,15 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FAFAFA' },
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingVertical: 20 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+  },
+  brandText: { fontSize: 18, fontWeight: '800', color: '#1A202C' },
+  backBtn: { width: 'auto', minWidth: 132, marginVertical: 0, paddingVertical: 10, paddingHorizontal: 14 },
   title: { fontSize: 28, fontWeight: '700', color: '#1A202C', marginBottom: 6 },
   subtitle: { fontSize: 16, color: '#718096', marginBottom: 24 },
   submitBtn: { marginTop: 16, marginBottom: 40 },

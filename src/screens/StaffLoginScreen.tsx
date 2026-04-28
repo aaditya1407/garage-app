@@ -84,6 +84,16 @@ export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSucce
         style={styles.container}
       >
         <View style={styles.content}>
+          <View style={styles.topRow}>
+            <Text style={styles.brandText}>WorkshopSeva</Text>
+            <Button
+              title="Back to Home"
+              variant="outline"
+              onPress={onSwitchToAdmin}
+              style={styles.backBtn}
+            />
+          </View>
+
           {/* Role badge */}
           <View style={styles.badge}>
             <Text style={styles.badgeText}>👤 Staff Login</Text>
@@ -134,6 +144,15 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FAFAFA' },
   container: { flex: 1, justifyContent: 'center' },
   content: { paddingHorizontal: 24, paddingVertical: 40 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 24,
+  },
+  brandText: { fontSize: 18, fontWeight: '800', color: '#1A202C' },
+  backBtn: { width: 'auto', minWidth: 132, marginVertical: 0, paddingVertical: 10, paddingHorizontal: 14 },
   badge: {
     backgroundColor: '#EEF2FF',
     alignSelf: 'flex-start',

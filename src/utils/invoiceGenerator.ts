@@ -24,7 +24,11 @@ export interface InvoiceData {
   paymentMode: string;
 }
 
-export const generateInvoicePDF = async (data: InvoiceData) => {
+/**
+ * Builds the full HTML string for an invoice.
+ * Shared by view, print, and upload functions.
+ */
+const buildInvoiceHTML = (data: InvoiceData): string => {
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -142,7 +146,48 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
     </body>
     </html>
   `;
+  return htmlContent;
+};
 
+/**
+ * Opens the invoice in a new tab/window for viewing only (no print dialog).
+ * On mobile, generates a PDF file and opens the share sheet.
+ */
+export const viewInvoicePDF = async (data: InvoiceData) => {
+  const htmlContent = buildInvoiceHTML(data);
+  try {
+    if (Platform.OS === 'web') {
+      const viewWindow = window.open('', '_blank');
+      if (viewWindow) {
+        viewWindow.document.write(htmlContent);
+        viewWindow.document.close();
+        viewWindow.focus();
+      } else {
+        window.alert('Please allow popups for this site to view invoices.');
+      }
+      return '';
+    }
+
+    const { uri } = await Print.printToFileAsync({ html: htmlContent });
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'View Invoice' });
+    } else {
+      console.log('PDF saved to:', uri);
+    }
+    return uri;
+  } catch (error) {
+    console.error('Error viewing invoice PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Opens the invoice and triggers the print dialog.
+ * On web: opens a new window and calls window.print().
+ * On mobile: generates a PDF file and opens the share sheet.
+ */
+export const generateInvoicePDF = async (data: InvoiceData) => {
+  const htmlContent = buildInvoiceHTML(data);
   try {
     if (Platform.OS === 'web') {
       const printWindow = window.open('', '_blank');
@@ -154,19 +199,17 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
           printWindow.print();
         }, 250);
       } else {
-        window.alert('Please allow popups for this site to view and print invoices.');
+        window.alert('Please allow popups for this site to print invoices.');
       }
       return '';
     }
 
     const { uri } = await Print.printToFileAsync({ html: htmlContent });
-
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Invoice' });
     } else {
       console.log('Sharing is not available on this platform. PDF saved to:', uri);
     }
-    
     return uri;
   } catch (error) {
     console.error('Error generating PDF:', error);

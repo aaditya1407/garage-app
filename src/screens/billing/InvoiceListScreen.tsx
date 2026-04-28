@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation/types';
-import { generateInvoicePDF, generateAndUploadInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
+import { viewInvoicePDF, generateInvoicePDF, generateAndUploadInvoicePDF, InvoiceData } from '../../utils/invoiceGenerator';
 import { fetchGarageInfo } from '../../utils/garageInfo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InvoiceList'>;
@@ -49,6 +49,7 @@ export const InvoiceListScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
+  const [printingFor, setPrintingFor] = useState<string | null>(null);
   const [sendingWhatsAppFor, setSendingWhatsAppFor] = useState<string | null>(null);
   const [garageName, setGarageName] = useState('Garage Manager');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -147,13 +148,26 @@ export const InvoiceListScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleViewInvoice = async (bill: BillSummary) => {
     setGeneratingFor(bill.id);
     try {
-      await generateInvoicePDF(buildInvoiceData(bill));
+      await viewInvoicePDF(buildInvoiceData(bill));
     } catch (err: any) {
-      if (Platform.OS === 'web') window.alert('Failed to generate PDF: ' + err.message);
-      else Alert.alert('Error', 'Failed to generate PDF: ' + err.message);
+      if (Platform.OS === 'web') window.alert('Failed to view invoice: ' + err.message);
+      else Alert.alert('Error', 'Failed to view invoice: ' + err.message);
       console.log(err);
     } finally {
       setGeneratingFor(null);
+    }
+  };
+
+  const handlePrintInvoice = async (bill: BillSummary) => {
+    setPrintingFor(bill.id);
+    try {
+      await generateInvoicePDF(buildInvoiceData(bill));
+    } catch (err: any) {
+      if (Platform.OS === 'web') window.alert('Failed to print invoice: ' + err.message);
+      else Alert.alert('Error', 'Failed to print invoice: ' + err.message);
+      console.log(err);
+    } finally {
+      setPrintingFor(null);
     }
   };
 
@@ -263,6 +277,7 @@ export const InvoiceListScreen: React.FC<Props> = ({ route, navigation }) => {
           const v = item.job_cards?.vehicles as any;
           const c = v?.customers as any;
           const isGenerating = generatingFor === item.id;
+          const isPrinting = printingFor === item.id;
           const customerName = item.customer_name || c?.full_name || 'Unknown';
           const vehicleLabel = item.vehicle_info || v?.license_plate || 'N/A';
 
@@ -323,11 +338,21 @@ export const InvoiceListScreen: React.FC<Props> = ({ route, navigation }) => {
                     mode="contained-tonal" 
                     onPress={() => handleViewInvoice(item)} 
                     loading={isGenerating}
-                    disabled={generatingFor !== null || sendingWhatsAppFor !== null}
+                    disabled={generatingFor !== null || sendingWhatsAppFor !== null || printingFor !== null}
                     icon="file-document-outline"
                     compact
                   >
                     View
+                  </Button>
+                  <Button 
+                    mode="contained-tonal" 
+                    onPress={() => handlePrintInvoice(item)} 
+                    loading={isPrinting}
+                    disabled={printingFor !== null || generatingFor !== null || sendingWhatsAppFor !== null}
+                    icon="printer"
+                    compact
+                  >
+                    Print
                   </Button>
                   <Button 
                     mode="contained" 

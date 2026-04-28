@@ -1,56 +1,121 @@
 import React from 'react';
-import { View, StyleSheet, ImageBackground, StatusBar, ScrollView, Image } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import {
+  Image,
+  ImageBackground,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { Button, Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Landing'>;
 
+const highlights = [
+  { value: 'Fast', label: 'job card intake' },
+  { value: 'Live', label: 'parts and billing visibility' },
+  { value: 'Easy', label: 'staff-ready workflow' },
+];
+
+const features = [
+  'Customer and vehicle records in one place',
+  'Digital job cards from intake to delivery',
+  'Inventory, billing, and invoice history built in',
+];
+
 export const LandingScreen: React.FC<Props> = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isWide = width >= 860;
+
   return (
-    <ImageBackground 
-      source={{ uri: 'https://images.unsplash.com/photo-1615906655593-ad0386982a0f?q=80&w=1000&auto=format&fit=crop' }} 
+    <ImageBackground
+      source={{ uri: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?q=80&w=1800&auto=format&fit=crop' }}
       style={styles.background}
+      resizeMode="cover"
     >
       <StatusBar barStyle="light-content" />
-      {/* Dark Overlay for elegance */}
       <View style={styles.overlay}>
-        <ScrollView contentContainerStyle={styles.container}>
-          
-          <View style={styles.content}>
-            <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.title}>WorkshopSeva</Text>
-            <Text style={styles.subtitle}>Streamlining your garage management with intelligence and ease.</Text>
-          </View>
-
-          <View style={styles.bottomSection}>
-            <View style={styles.contactContainer}>
-              <Text style={styles.contactText}>📞 9755970253</Text>
-              <Text style={styles.contactText}>✉️ contact@the3bsolutions.com</Text>
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <Button 
-                mode="contained" 
-                style={styles.loginBtn}
-                contentStyle={styles.btnContent}
-                labelStyle={styles.loginBtnLabel}
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.shell}>
+            <View style={styles.topBar}>
+              <View style={styles.brandWrap}>
+                <Image source={require('../../assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
+                <Text style={styles.brandName}>WorkshopSeva</Text>
+              </View>
+              <Button
+                mode="text"
+                compact
+                textColor="#FFFFFF"
+                labelStyle={styles.topLoginLabel}
                 onPress={() => navigation.navigate('Login')}
               >
-                Log In to Dashboard
-              </Button>
-              <Button 
-                mode="outlined" 
-                style={styles.signupBtn}
-                contentStyle={styles.btnContent}
-                labelStyle={styles.signupBtnLabel}
-                onPress={() => navigation.navigate('GarageOnboarding')}
-              >
-                Register a New Garage
+                Log in
               </Button>
             </View>
+
+            <View style={[styles.hero, isWide ? styles.heroWide : styles.heroNarrow]}>
+              <View style={styles.heroCopy}>
+                <Text style={styles.eyebrow}>Garage management made practical</Text>
+                <Text style={[styles.title, isWide ? styles.titleWide : styles.titleNarrow]}>
+                  Run every service bay with less paperwork.
+                </Text>
+                <Text style={styles.subtitle}>
+                  WorkshopSeva helps garages manage customers, vehicles, job cards, parts, staff, and billing from one simple dashboard.
+                </Text>
+
+                <View style={[styles.actions, isWide ? styles.actionsWide : styles.actionsNarrow]}>
+                  <Button
+                    mode="contained"
+                    style={styles.primaryButton}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.primaryButtonLabel}
+                    onPress={() => navigation.navigate('GarageOnboarding')}
+                  >
+                    Register Garage
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    style={styles.secondaryButton}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.secondaryButtonLabel}
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    Open Dashboard
+                  </Button>
+                </View>
+
+                <View style={[styles.contactRow, isWide ? styles.contactRowWide : styles.contactRowNarrow]}>
+                  <Text style={styles.contactItem}>Call: 9755970253</Text>
+                  {isWide && <Text style={styles.contactDivider}>|</Text>}
+                  <Text style={styles.contactItem}>Email: contact@the3bsolutions.com</Text>
+                </View>
+              </View>
+
+              <View style={styles.panel}>
+                <Text style={styles.panelTitle}>Built for daily workshop flow</Text>
+                <View style={styles.highlightGrid}>
+                  {highlights.map((item) => (
+                    <View style={styles.highlight} key={item.value}>
+                      <Text style={styles.highlightValue}>{item.value}</Text>
+                      <Text style={styles.highlightLabel}>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.featureList}>
+                  {features.map((feature) => (
+                    <View style={styles.featureItem} key={feature}>
+                      <View style={styles.featureDot} />
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
           </View>
-          
         </ScrollView>
       </View>
     </ImageBackground>
@@ -62,91 +127,218 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    backgroundColor: '#111827',
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(10, 20, 35, 0.8)', // Deep blue elegant overlay
+    backgroundColor: 'rgba(11, 18, 32, 0.76)',
   },
-  container: {
+  scrollContent: {
     flexGrow: 1,
-    justifyContent: 'space-between',
-    paddingVertical: 40,
   },
-  content: {
+  shell: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
     paddingHorizontal: 24,
-    paddingTop: '20%',
+    paddingTop: Platform.OS === 'web' ? 28 : 44,
+    paddingBottom: 32,
+  },
+  topBar: {
+    minHeight: 56,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 16,
-    borderRadius: 75,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    backgroundColor: '#FFFFFF'
+    width: 46,
+    height: 46,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  brandName: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  topLoginLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  hero: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 32,
+    paddingTop: Platform.OS === 'web' ? 74 : 52,
+    paddingBottom: 24,
+  },
+  heroWide: {
+    flexDirection: 'row',
+  },
+  heroNarrow: {
+    flexDirection: 'column',
+  },
+  heroCopy: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 660,
+  },
+  eyebrow: {
+    color: '#FACC15',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0,
+    marginBottom: 14,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 48,
-    fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 1,
-    marginBottom: 16,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10
+    fontWeight: '900',
+    letterSpacing: 0,
+    marginBottom: 18,
+  },
+  titleWide: {
+    fontSize: 56,
+    lineHeight: 64,
+  },
+  titleNarrow: {
+    fontSize: 40,
+    lineHeight: 48,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#D1D5DB',
-    textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: '85%',
-  },
-  bottomSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  contactContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  contactText: {
     color: '#E5E7EB',
-    fontSize: 14,
-    marginVertical: 4,
-    fontWeight: '500'
+    fontSize: 18,
+    lineHeight: 29,
+    maxWidth: 600,
+    marginBottom: 30,
   },
-  buttonContainer: {
-    gap: 16,
+  actions: {
+    gap: 14,
+    marginBottom: 22,
   },
-  btnContent: {
-    paddingVertical: 8,
+  actionsWide: {
+    flexDirection: 'row',
   },
-  loginBtn: {
+  actionsNarrow: {
+    flexDirection: 'column',
+  },
+  buttonContent: {
+    minHeight: 52,
+    paddingHorizontal: 16,
+  },
+  primaryButton: {
     borderRadius: 8,
-    backgroundColor: '#3B82F6', // Vibrant blue
+    backgroundColor: '#F59E0B',
   },
-  loginBtnLabel: {
+  primaryButtonLabel: {
+    color: '#111827',
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: '800',
   },
-  signupBtn: {
+  secondaryButton: {
     borderRadius: 8,
     borderColor: '#FFFFFF',
     borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
-  signupBtnLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  secondaryButtonLabel: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  contactRow: {
+    gap: 4,
+  },
+  contactRowWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  contactRowNarrow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  contactItem: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '600',
+  },
+  contactDivider: {
+    color: '#94A3B8',
+    fontSize: 14,
+  },
+  panel: {
+    width: '100%',
+    maxWidth: 430,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    padding: 22,
+  },
+  panelTitle: {
+    color: '#111827',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+    marginBottom: 18,
+  },
+  highlightGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  highlight: {
+    flex: 1,
+    minHeight: 92,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    justifyContent: 'center',
+  },
+  highlightValue: {
+    color: '#0F766E',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
+  },
+  highlightLabel: {
+    color: '#475569',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  featureList: {
+    gap: 12,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  featureDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F59E0B',
+    marginTop: 7,
+  },
+  featureText: {
+    flex: 1,
+    color: '#334155',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
   },
 });
