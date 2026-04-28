@@ -5,12 +5,14 @@ import { SignupChoiceScreen } from '../screens/SignupChoiceScreen';
 import { GarageOnboardingScreen } from '../screens/GarageOnboardingScreen';
 import { StaffSignupScreen } from '../screens/StaffSignupScreen';
 import { LandingScreen } from '../screens/LandingScreen';
+import { RegistrationThankYouScreen } from '../screens/RegistrationThankYouScreen';
 
 export type AuthStackParamList = {
   Landing: undefined;
   Login: undefined;
   SignupChoice: undefined;
   GarageOnboarding: undefined;
+  RegistrationThankYou: undefined;
   StaffSignup: undefined;
 };
 
@@ -50,6 +52,11 @@ export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff })
         name="GarageOnboarding" 
         component={GarageOnboardingScreen} 
         options={{ title: 'Register Garage' }} 
+      />
+      <Stack.Screen 
+        name="RegistrationThankYou" 
+        component={RegistrationThankYouScreen} 
+        options={{ title: 'Registration Complete', headerShown: false }} 
       />
       <Stack.Screen 
         name="StaffSignup" 
