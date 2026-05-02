@@ -3,14 +3,17 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, S
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { State, City } from 'country-state-city';
+// Lightweight local data for India (36 states, 4 242 cities, ~50 KB).
+// Replaces the massive country-state-city library whose deep module tree
+// overflows iOS Safari's call stack.
+import indianData from '../data/indianStatesAndCities.json';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Dropdown } from '../components/Dropdown';
 import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/AuthNavigator';
+import { AuthStackParamList } from '../navigation/types';
 
 
 // We hardcode Country as India for now based on requirements.
@@ -41,21 +44,14 @@ export const GarageOnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
   const selectedState = watch("state");
 
-  // Load States for India
-  const stateOptions = useMemo(() => {
-    return State.getStatesOfCountry(COUNTRY_CODE).map(state => ({
-      label: state.name,
-      value: state.isoCode,
-    }));
-  }, []);
+  // State options from local data
+  const stateOptions = indianData.states;
 
   // Load Cities dynamically based on selected state
   const cityOptions = useMemo(() => {
     if (!selectedState) return [];
-    return City.getCitiesOfState(COUNTRY_CODE, selectedState).map(city => ({
-      label: city.name,
-      value: city.name,
-    }));
+    const cities = (indianData.cityMap as Record<string, string[]>)[selectedState] || [];
+    return cities.map(name => ({ label: name, value: name }));
   }, [selectedState]);
 
   // Reset city if state changes

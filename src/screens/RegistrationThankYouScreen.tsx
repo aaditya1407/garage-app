@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/AuthNavigator';
+import { AuthStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'RegistrationThankYou'>;

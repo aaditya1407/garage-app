@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/AuthNavigator';
+import { AuthStackParamList } from '../navigation/types';
 import { supabase } from '../lib/supabase';
 
 const loginSchema = z.object({

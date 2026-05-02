@@ -49,10 +49,31 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh();
+// Auto-refresh tokens when the app returns to the foreground.
+// On web, visibility-change handling is less reliable (especially iOS Safari)
+// so wrap defensively to prevent a crash from blocking the entire module.
+try {
+  if (Platform.OS !== 'web') {
+    AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        supabase.auth.startAutoRefresh();
+      } else {
+        supabase.auth.stopAutoRefresh();
+      }
+    });
   } else {
-    supabase.auth.stopAutoRefresh();
+    // Web: use document.visibilitychange for better cross-browser support
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          supabase.auth.startAutoRefresh();
+        } else {
+          supabase.auth.stopAutoRefresh();
+        }
+      });
+    }
   }
-});
+} catch (e) {
+  console.warn('Auto-refresh listener setup failed:', e);
+}
+

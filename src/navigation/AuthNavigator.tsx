@@ -1,11 +1,5 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LoginScreen } from '../screens/LoginScreen';
-import { SignupChoiceScreen } from '../screens/SignupChoiceScreen';
-import { GarageOnboardingScreen } from '../screens/GarageOnboardingScreen';
-import { StaffSignupScreen } from '../screens/StaffSignupScreen';
-import { LandingScreen } from '../screens/LandingScreen';
-import { RegistrationThankYouScreen } from '../screens/RegistrationThankYouScreen';
 
 export type AuthStackParamList = {
   Landing: undefined;
@@ -22,6 +16,9 @@ interface AuthNavigatorProps {
   onSwitchToStaff?: () => void;
 }
 
+// Screen imports are deferred via require() to reduce the synchronous
+// module-loading depth and prevent "Maximum call stack size exceeded"
+// on iOS Safari.
 export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff }) => {
   return (
     <Stack.Navigator
@@ -34,33 +31,36 @@ export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff })
     >
       <Stack.Screen 
         name="Landing" 
-        component={LandingScreen} 
+        component={require('../screens/LandingScreen').LandingScreen} 
         options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="Login" 
         options={{ headerShown: false }}
       >
-        {(props) => <LoginScreen {...props} onSwitchToStaff={onSwitchToStaff} />}
+        {(props) => {
+          const { LoginScreen } = require('../screens/LoginScreen');
+          return <LoginScreen {...props} onSwitchToStaff={onSwitchToStaff} />;
+        }}
       </Stack.Screen>
       <Stack.Screen 
         name="SignupChoice" 
-        component={SignupChoiceScreen} 
+        component={require('../screens/SignupChoiceScreen').SignupChoiceScreen} 
         options={{ title: 'Create Account' }} 
       />
       <Stack.Screen 
         name="GarageOnboarding" 
-        component={GarageOnboardingScreen} 
+        component={require('../screens/GarageOnboardingScreen').GarageOnboardingScreen} 
         options={{ title: 'Register Garage' }} 
       />
       <Stack.Screen 
         name="RegistrationThankYou" 
-        component={RegistrationThankYouScreen} 
+        component={require('../screens/RegistrationThankYouScreen').RegistrationThankYouScreen} 
         options={{ title: 'Registration Complete', headerShown: false }} 
       />
       <Stack.Screen 
         name="StaffSignup" 
-        component={StaffSignupScreen} 
+        component={require('../screens/StaffSignupScreen').StaffSignupScreen} 
         options={{ title: 'Join a Garage' }} 
       />
     </Stack.Navigator>
