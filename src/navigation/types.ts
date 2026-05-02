@@ -1,5 +1,13 @@
 export type RootStackParamList = {
-  Auth: undefined;
+  // ── Auth screens (unauthenticated) ──
+  Landing: undefined;
+  Login: undefined;
+  SignupChoice: undefined;
+  GarageOnboarding: undefined;
+  RegistrationThankYou: undefined;
+  StaffSignup: undefined;
+
+  // ── App screens (authenticated) ──
   Home: undefined;
   StaffHome: undefined;
   VerificationSuccess: undefined;
@@ -24,3 +32,6 @@ export type RootStackParamList = {
   OwnerDashboard: { phone: string; fullName: string; userId: string };
   BranchDashboard: { garageId: string; phone: string; fullName: string; userId: string };
 };
+
+// Re-export for backward compatibility with screens that import AuthStackParamList
+export type AuthStackParamList = RootStackParamList;
