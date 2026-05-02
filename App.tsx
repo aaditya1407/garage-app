@@ -5,17 +5,6 @@ if (Platform.OS !== 'web') {
   require('react-native-url-polyfill/auto');
 }
 
-// ── Global error handlers for iOS Safari debugging ────────────────
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  window.onerror = (message, source, lineno, colno, error) => {
-    console.error('[GLOBAL onerror]', message, source, lineno, colno, error);
-    return false;
-  };
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('[GLOBAL unhandledrejection]', event.reason);
-  });
-}
-
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -25,6 +14,9 @@ import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 // ── Global Paper Theme ─────────────────────────────────────────────
+// Forces all TextInput components across every screen to render with a
+// clean white background, visible dark labels, and no text-overlap issues
+// regardless of the browser / OS colour-scheme preference.
 const appTheme = {
   ...MD3LightTheme,
   colors: {
