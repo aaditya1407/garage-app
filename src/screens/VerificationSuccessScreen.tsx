@@ -141,13 +141,8 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.title}>Email Verified!</Text>
         <Text style={styles.subtitle}>Your garage has been successfully registered.</Text>
 
-        <View style={styles.codeBox}>
-          <Text style={styles.codeHash}>#</Text>
-          <Text style={styles.codeText}>{garageCode}</Text>
-        </View>
-
-        <Text style={styles.instructionText}>
-          Give this secure 4-digit code to your Service Advisors, Technicians, and Accountants so they can seamlessly join your digital workspace.
+        <Text style={[styles.instructionText, { marginTop: 24 }]}>
+          You can now log in and manage your customers, vehicles, job cards, parts, staff, and billing from your dashboard. Add your staff directly from the "Manage Staff" panel.
         </Text>
 
         <Button 

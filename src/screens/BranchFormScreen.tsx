@@ -1,15 +1,20 @@
-import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform, KeyboardAvoidingView, SafeAreaView, Modal, FlatList, TouchableOpacity } from 'react-native';
-import { Text, Searchbar, List, Divider, TextInput } from 'react-native-paper';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView } from 'react-native';
+import { Text } from 'react-native-paper';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { Dropdown } from '../components/Dropdown';
+import { AlertModal, AlertVariant } from '../components/AlertModal';
 import { supabase } from '../lib/supabase';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { State, City } from 'country-state-city';
+// Lightweight local data for India (36 states, 4 242 cities, ~50 KB).
+// Replaces the massive country-state-city library whose deep module tree
+// overflows iOS Safari's call stack.
+import indianData from '../data/indianStatesAndCities.json';
 
 const garageSchema = z.object({
   garageName: z.string().min(2, 'Name is too short'),
@@ -25,23 +30,39 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BranchForm'>;
 export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const { phone, fullName } = route.params;
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    variant: AlertVariant;
+  }>({ title: '', message: '', variant: 'info' });
 
-  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<GarageFormData>({
+  const { control, handleSubmit, setValue, watch, formState: { errors }, resetField } = useForm<GarageFormData>({
     resolver: zodResolver(garageSchema),
     defaultValues: { garageName: '', address: '', city: '', state: '' }
   });
 
-  const [selectedStateCode, setSelectedStateCode] = useState('');
-  const [showStateModal, setShowStateModal] = useState(false);
-  const [showCityModal, setShowCityModal] = useState(false);
-  const [stateSearch, setStateSearch] = useState('');
-  const [citySearch, setCitySearch] = useState('');
+  const selectedState = watch('state');
 
-  const indianStates = useMemo(() => State.getStatesOfCountry('IN'), []);
-  const indianCities = useMemo(() => selectedStateCode ? City.getCitiesOfState('IN', selectedStateCode) : [], [selectedStateCode]);
+  // State options from local data
+  const stateOptions = indianData.states;
 
-  const filteredStates = useMemo(() => indianStates.filter(s => s.name.toLowerCase().includes(stateSearch.toLowerCase())), [indianStates, stateSearch]);
-  const filteredCities = useMemo(() => indianCities.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase())), [indianCities, citySearch]);
+  // Load Cities dynamically based on selected state
+  const cityOptions = useMemo(() => {
+    if (!selectedState) return [];
+    const cities = (indianData.cityMap as Record<string, string[]>)[selectedState] || [];
+    return cities.map(name => ({ label: name, value: name }));
+  }, [selectedState]);
+
+  // Reset city if state changes
+  useEffect(() => {
+    resetField('city');
+  }, [selectedState, resetField]);
+
+  const showAlert = (title: string, message: string, variant: AlertVariant) => {
+    setAlertConfig({ title, message, variant });
+    setAlertVisible(true);
+  };
 
   const generateGarageCode = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -68,6 +89,10 @@ export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       }
 
+      // Find the state label from the state code for storage
+      const stateEntry = stateOptions.find(s => s.value === data.state);
+      const stateName = stateEntry ? stateEntry.label : data.state;
+
       const { data: newGarage, error } = await supabase
         .from('garages')
         .insert({
@@ -76,7 +101,7 @@ export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
           phone: phone,
           address: data.address,
           city: data.city,
-          state: data.state,
+          state: stateName,
           country: 'India',
           garage_code: code,
           owner_user_id: ownerUserId,   // ties new branch to auth user UUID
@@ -86,25 +111,24 @@ export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
       if (error) throw error;
 
-      const msg = `Branch Created! 🏢\nName: ${data.garageName}\nCode: ${code}\n\nShare this code with your staff to join.`;
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-        navigation.goBack();
-      } else {
-        Alert.alert('Branch Created! 🏢', `Name: ${data.garageName}\nCode: ${code}\n\nShare this code with staff to join.`, [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
-      }
+      showAlert(
+        'Branch Created! 🏢',
+        `Name: ${data.garageName}\n\nBranch created successfully! You can add your staff from the "Manage Staff" panel.`,
+        'success'
+      );
     } catch (err: any) {
       console.error(err);
-      const errMsg = err.message || 'Failed to create branch';
-      if (Platform.OS === 'web') {
-        window.alert('Error: ' + errMsg);
-      } else {
-        Alert.alert('Error', errMsg);
-      }
+      showAlert('Error', err.message || 'Failed to create branch', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAlertClose = () => {
+    setAlertVisible(false);
+    // Navigate back on success
+    if (alertConfig.variant === 'success') {
+      navigation.goBack();
     }
   };
 
@@ -153,42 +177,30 @@ export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
           <Controller
             control={control}
             name="state"
-            render={({ field: { value } }) => (
-              <TouchableOpacity onPress={() => setShowStateModal(true)}>
-                <View pointerEvents="none">
-                  <Input
-                    label="State"
-                    placeholder="Select State"
-                    value={value}
-                    error={errors.state?.message}
-                    editable={false}
-                  />
-                </View>
-              </TouchableOpacity>
+            render={({ field: { onChange, value } }) => (
+              <Dropdown
+                label="State (India)"
+                placeholder="Select State"
+                options={stateOptions}
+                value={value}
+                onSelect={onChange}
+                error={errors.state?.message}
+              />
             )}
           />
 
           <Controller
             control={control}
             name="city"
-            render={({ field: { value } }) => (
-              <TouchableOpacity onPress={() => {
-                if (!selectedStateCode) {
-                  Platform.OS === 'web' ? window.alert('Please select a state first.') : Alert.alert('Notice', 'Please select a state first.');
-                  return;
-                }
-                setShowCityModal(true);
-              }}>
-                <View pointerEvents="none">
-                  <Input
-                    label="City"
-                    placeholder="Select City"
-                    value={value}
-                    error={errors.city?.message}
-                    editable={false}
-                  />
-                </View>
-              </TouchableOpacity>
+            render={({ field: { onChange, value } }) => (
+              <Dropdown
+                label="City"
+                placeholder={selectedState ? "Select City" : "Select a State first"}
+                options={cityOptions}
+                value={value}
+                onSelect={onChange}
+                error={errors.city?.message}
+              />
             )}
           />
 
@@ -201,70 +213,13 @@ export const BranchFormScreen: React.FC<Props> = ({ route, navigation }) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* STATE SELECTION MODAL */}
-      <Modal visible={showStateModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowStateModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-          <View style={styles.modalHeader}>
-            <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>Select State</Text>
-            <TouchableOpacity onPress={() => setShowStateModal(false)}><Text style={{ color: '#1976D2', fontWeight: 'bold' }}>Close</Text></TouchableOpacity>
-          </View>
-          <View style={{ padding: 16 }}>
-            <Searchbar placeholder="Search states..." value={stateSearch} onChangeText={setStateSearch} elevation={0} style={{ backgroundColor: '#F5F5F5' }} />
-          </View>
-          <FlatList
-            data={filteredStates}
-            keyExtractor={item => item.isoCode}
-            renderItem={({ item }) => (
-              <>
-                <List.Item
-                  title={item.name}
-                  onPress={() => {
-                    setValue('state', item.name);
-                    setValue('city', ''); // reset city on state change
-                    setSelectedStateCode(item.isoCode);
-                    setShowStateModal(false);
-                    setStateSearch('');
-                  }}
-                />
-                <Divider />
-              </>
-            )}
-            ListEmptyComponent={<Text style={{ padding: 24, textAlign: 'center' }}>No states found.</Text>}
-          />
-        </SafeAreaView>
-      </Modal>
-
-      {/* CITY SELECTION MODAL */}
-      <Modal visible={showCityModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCityModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-          <View style={styles.modalHeader}>
-            <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>Select City</Text>
-            <TouchableOpacity onPress={() => setShowCityModal(false)}><Text style={{ color: '#1976D2', fontWeight: 'bold' }}>Close</Text></TouchableOpacity>
-          </View>
-          <View style={{ padding: 16 }}>
-            <Searchbar placeholder="Search cities..." value={citySearch} onChangeText={setCitySearch} elevation={0} style={{ backgroundColor: '#F5F5F5' }} />
-          </View>
-          <FlatList
-            data={filteredCities}
-            keyExtractor={item => item.name}
-            renderItem={({ item }) => (
-              <>
-                <List.Item
-                  title={item.name}
-                  onPress={() => {
-                    setValue('city', item.name);
-                    setShowCityModal(false);
-                    setCitySearch('');
-                  }}
-                />
-                <Divider />
-              </>
-            )}
-            ListEmptyComponent={<Text style={{ padding: 24, textAlign: 'center' }}>No cities found for this state.</Text>}
-          />
-        </SafeAreaView>
-      </Modal>
-
+      <AlertModal
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        variant={alertConfig.variant}
+        onClose={handleAlertClose}
+      />
     </SafeAreaView>
   );
 };
@@ -275,5 +230,4 @@ const styles = StyleSheet.create({
   title: { fontWeight: 'bold', color: '#1A202C', marginBottom: 8 },
   subtitle: { color: '#718096', marginBottom: 24, lineHeight: 22 },
   submitBtn: { marginTop: 16 },
-  modalHeader: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#EEEEEE' },
 });

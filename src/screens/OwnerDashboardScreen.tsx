@@ -38,7 +38,6 @@ const C = {
 interface GarageStats {
   id: string;
   garage_name: string;
-  garage_code: string;
   city: string;
   state: string;
   openJobs: number;
@@ -81,7 +80,7 @@ export const OwnerDashboardScreen: React.FC<Props> = ({ route, navigation }) => 
       // 1. Get all garages owned by this auth user (UUID-based, robust)
       const { data: garages, error: gError } = await supabase
         .from('garages')
-        .select('id, garage_name, garage_code, city, state')
+        .select('id, garage_name, city, state')
         .eq('owner_user_id', userId)
         .order('created_at', { ascending: true });
 
@@ -369,7 +368,7 @@ const BranchCard = ({
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={branchStyles.branchName}>{branch.garage_name}</Text>
         <Text style={branchStyles.branchSub}>
-          {branch.city}{branch.state ? `, ${branch.state}` : ''}  ·  Code #{branch.garage_code}
+          {branch.city}{branch.state ? `, ${branch.state}` : ''}
         </Text>
       </View>
       <TouchableOpacity style={branchStyles.deleteBtn} onPress={onDelete}>

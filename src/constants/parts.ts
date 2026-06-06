@@ -160,6 +160,48 @@ export const PART_CATEGORIES: PartCategory[] = [
     ]
   },
   {
+    title: 'DENTING & PAINTING',
+    data: [
+      'Minor Dent Repair',
+      'Major Dent Repair',
+      'Full Body Denting',
+      'Panel Beating',
+      'Scratch Removal',
+      'Touch-Up Paint',
+      'Single Panel Painting',
+      'Multi Panel Painting',
+      'Full Body Painting',
+      'Bumper Painting',
+      'Alloy Wheel Painting',
+      'Clear Coat Application',
+      'Primer / Putty Work',
+      'Rust Treatment & Paint',
+      'Paint Protection Film (PPF)',
+      'Ceramic Coating',
+    ]
+  },
+  {
+    title: 'WASHING & DETAILING',
+    data: [
+      'Basic Exterior Wash',
+      'Full Body Wash',
+      'Interior Cleaning',
+      'Interior + Exterior Wash',
+      'Engine Bay Wash',
+      'Underbody Wash',
+      'Foam Wash',
+      'Premium Detailing',
+      'Interior Vacuuming',
+      'Dashboard Polish',
+      'Seat Shampooing',
+      'Leather Conditioning',
+      'Tyre Dressing',
+      'Glass Cleaning & Polish',
+      'Headlight Restoration',
+      'Odour Removal Treatment',
+    ]
+  },
+  {
     title: 'CONSUMABLES & MISC',
     data: [
       'Grease (High Temp)',
@@ -170,7 +212,6 @@ export const PART_CATEGORIES: PartCategory[] = [
       'Windshield Washer Fluid',
       'Towing Charges',
       'Labour Charges',
-      'Custom Part',
     ]
   }
 ];

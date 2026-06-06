@@ -1,29 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, TouchableOpacity } from 'react-native';
 import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { AlertModal, AlertVariant } from '../components/AlertModal';
 
 interface StaffLoginScreenProps {
   onLoginSuccess: () => void;
   onSwitchToAdmin: () => void;
+  onForgotPassword?: () => void;
 }
 
-export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSuccess, onSwitchToAdmin }) => {
+export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSuccess, onSwitchToAdmin, onForgotPassword }) => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    variant: AlertVariant;
+  }>({ title: '', message: '', variant: 'info' });
+
+  const showAlert = (title: string, message: string, variant: AlertVariant) => {
+    setAlertConfig({ title, message, variant });
+    setAlertVisible(true);
+  };
 
   const handleLogin = async () => {
     if (!phone.trim() || phone.trim().length < 10) {
-      const msg = 'Please enter a valid phone number (min 10 digits)';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Validation', msg);
+      showAlert('Validation Error', 'Please enter a valid phone number (min 10 digits)', 'warning');
       return;
     }
     if (!password.trim()) {
-      const msg = 'Please enter your password';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Validation', msg);
+      showAlert('Validation Error', 'Please enter your password', 'warning');
       return;
     }
 
@@ -71,7 +82,7 @@ export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSucce
 
     } catch (err: any) {
       const msg = err.message || 'Login failed';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Login Failed', msg);
+      showAlert('Login Failed', msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -118,6 +129,16 @@ export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSucce
             onChangeText={setPassword}
           />
 
+          {/* Forgot Password Link */}
+          {onForgotPassword && (
+            <TouchableOpacity
+              onPress={onForgotPassword}
+              style={styles.forgotBtn}
+            >
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          )}
+
           <Button
             title="Login"
             loading={loading}
@@ -136,6 +157,14 @@ export const StaffLoginScreen: React.FC<StaffLoginScreenProps> = ({ onLoginSucce
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        variant={alertConfig.variant}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -166,6 +195,18 @@ const styles = StyleSheet.create({
   badgeText: { color: '#4338CA', fontSize: 13, fontWeight: '700' },
   title: { fontSize: 32, fontWeight: '700', color: '#1A202C', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#718096', marginBottom: 32 },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  forgotText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   submitBtn: { marginTop: 16, marginBottom: 8 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },

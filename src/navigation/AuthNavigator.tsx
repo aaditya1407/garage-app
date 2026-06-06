@@ -4,10 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 export type AuthStackParamList = {
   Landing: undefined;
   Login: undefined;
-  SignupChoice: undefined;
+  ForgotPassword: undefined;
   GarageOnboarding: undefined;
   RegistrationThankYou: undefined;
-  StaffSignup: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -44,9 +43,9 @@ export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff })
         }}
       </Stack.Screen>
       <Stack.Screen 
-        name="SignupChoice" 
-        component={require('../screens/SignupChoiceScreen').SignupChoiceScreen} 
-        options={{ title: 'Create Account' }} 
+        name="ForgotPassword" 
+        component={require('../screens/ForgotPasswordScreen').ForgotPasswordScreen} 
+        options={{ title: 'Forgot Password', headerShown: false }} 
       />
       <Stack.Screen 
         name="GarageOnboarding" 
@@ -57,11 +56,6 @@ export const AuthNavigator: React.FC<AuthNavigatorProps> = ({ onSwitchToStaff })
         name="RegistrationThankYou" 
         component={require('../screens/RegistrationThankYouScreen').RegistrationThankYouScreen} 
         options={{ title: 'Registration Complete', headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="StaffSignup" 
-        component={require('../screens/StaffSignupScreen').StaffSignupScreen} 
-        options={{ title: 'Join a Garage' }} 
       />
     </Stack.Navigator>
   );

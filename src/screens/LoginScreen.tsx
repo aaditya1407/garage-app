@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { AlertModal, AlertVariant } from '../components/AlertModal';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
 import { supabase } from '../lib/supabase';
@@ -24,11 +25,22 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onSwitchToStaff }) => {
   const [loading, setLoading] = useState(false);
-  
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    variant: AlertVariant;
+  }>({ title: '', message: '', variant: 'info' });
+
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
   });
+
+  const showAlert = (title: string, message: string, variant: AlertVariant) => {
+    setAlertConfig({ title, message, variant });
+    setAlertVisible(true);
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
@@ -40,9 +52,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onSwitchTo
     setLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      showAlert('Login Failed', error.message, 'error');
     } else {
-      Alert.alert('Welcome Back!', 'You have successfully logged in.');
+      showAlert('Welcome Back!', 'You have successfully logged in.', 'success');
     }
   };
 
@@ -104,12 +116,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onSwitchTo
             )}
           />
 
+          {/* Forgot Password Link */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.forgotBtn}
+          >
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
           <Button title="Login" loading={loading} onPress={handleSubmit(onSubmit)} style={styles.submitBtn} />
           
           <Button 
             title="Don't have an account? Sign Up" 
             variant="outline" 
-            onPress={() => navigation.navigate('SignupChoice')} 
+            onPress={() => navigation.navigate('GarageOnboarding')} 
           />
 
           {onSwitchToStaff && (
@@ -127,6 +147,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onSwitchTo
           )}
         </View>
       </KeyboardAvoidingView>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        variant={alertConfig.variant}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -157,6 +185,18 @@ const styles = StyleSheet.create({
   badgeText: { color: '#92400E', fontSize: 13, fontWeight: '700' },
   title: { fontSize: 32, fontWeight: '700', color: '#1A202C', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#718096', marginBottom: 32 },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  forgotText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   submitBtn: { marginTop: 16, marginBottom: 8 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },

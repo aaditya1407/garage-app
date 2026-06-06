@@ -28,10 +28,8 @@ function preload() {
     // ── Auth screens ──
     require('../screens/LandingScreen');
     require('../screens/LoginScreen');
-    require('../screens/SignupChoiceScreen');
     require('../screens/GarageOnboardingScreen');
     require('../screens/RegistrationThankYouScreen');
-    require('../screens/StaffSignupScreen');
     require('../screens/StaffLoginScreen');
     require('../screens/StaffHomeScreen');
     require('../screens/VerificationSuccessScreen');
