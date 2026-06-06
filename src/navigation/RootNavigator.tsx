@@ -172,13 +172,14 @@ export const RootNavigator = () => {
         /* tree depth and causes "Maximum call stack size exceeded" on iOS Safari. */
         <>
           {loginMode === 'staff' ? (
-            <Stack.Screen name="Login">
+            <Stack.Screen name="StaffLogin">
               {() => {
                 const { StaffLoginScreen } = require('../screens/StaffLoginScreen');
                 return (
                   <StaffLoginScreen
                     onLoginSuccess={handleStaffLoginSuccess}
                     onSwitchToAdmin={() => setLoginMode('admin')}
+                    onForgotPassword={() => setLoginMode('admin')}
                   />
                 );
               }}
@@ -193,11 +194,6 @@ export const RootNavigator = () => {
                 }}
               </Stack.Screen>
               <Stack.Screen
-                name="SignupChoice"
-                component={require('../screens/SignupChoiceScreen').SignupChoiceScreen}
-                options={{ headerShown: true, title: 'Create Account' }}
-              />
-              <Stack.Screen
                 name="GarageOnboarding"
                 component={require('../screens/GarageOnboardingScreen').GarageOnboardingScreen}
                 options={{ headerShown: true, title: 'Register Garage' }}
@@ -208,9 +204,9 @@ export const RootNavigator = () => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
-                name="StaffSignup"
-                component={require('../screens/StaffSignupScreen').StaffSignupScreen}
-                options={{ headerShown: true, title: 'Join a Garage' }}
+                name="ForgotPassword"
+                component={require('../screens/ForgotPasswordScreen').ForgotPasswordScreen}
+                options={{ headerShown: false }}
               />
             </>
           )}

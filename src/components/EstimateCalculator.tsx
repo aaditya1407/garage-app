@@ -9,6 +9,7 @@ import {
 } from 'react-native-paper';
 
 import { PART_CATEGORIES } from '../constants/parts';
+import { fetchCustomParts, saveCustomPart } from '../utils/customParts';
 
 export interface PartLineItem {
   id: string;
@@ -46,6 +47,9 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
   // Inventory items from DB
   const [inventoryItems, setInventoryItems] = useState<{id: string; part_name: string; price: number; stock_quantity: number}[]>([]);
 
+  // Custom parts saved by this garage
+  const [customParts, setCustomParts] = useState<string[]>([]);
+
   // ── Derived: total parts cost
   const partsCost = partLines.reduce(
     (sum, l) => sum + (parseFloat(l.cost) || 0),
@@ -70,26 +74,34 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
     });
   }, [partLines, labourCost, gstPercent, approvalStatus]);
 
-  // ── Fetch inventory when picker opens
+  // ── Fetch inventory + custom parts when picker opens
   useEffect(() => {
     if (showPartPicker && garageId) {
       import('../lib/supabase').then(({ supabase }) => {
         supabase.from('inventory').select('id, part_name, price, stock_quantity').eq('garage_id', garageId)
           .then(({ data }) => setInventoryItems(data || []));
       });
+      fetchCustomParts(garageId).then(setCustomParts);
     }
   }, [showPartPicker, garageId]);
 
   // ── Helpers: add from catalogue or custom
-  const addPart = (name: string, inventoryItemId?: string, price?: number) => {
+  const addPart = (name: string, inventoryItemId?: string, price?: number, isCustom?: boolean) => {
     const newLine: PartLineItem = {
       id: `${Date.now()}-${Math.random()}`,
-      name: name === 'Custom Part' ? '' : name,
-      isCustom: name === 'Custom Part',
+      name: name,
+      isCustom: isCustom || false,
       cost: price != null ? String(price) : '',
       inventoryItemId,
     };
     setPartLines(prev => [...prev, newLine]);
+    // Save custom part to DB for future use
+    if (isCustom && garageId) {
+      saveCustomPart(garageId, name).then(() => {
+        // Add to local list immediately so it shows if picker reopens
+        setCustomParts(prev => prev.includes(name) ? prev : [...prev, name].sort());
+      });
+    }
     setShowPartPicker(false);
     setPartSearch('');
   };
@@ -108,6 +120,22 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
     title: cat.title,
     data: cat.data.filter((item: string) => item.toLowerCase().includes(partSearch.toLowerCase()))
   })).filter(cat => cat.data.length > 0);
+
+  // Filter saved custom parts by search
+  const filteredCustomParts = customParts.filter(p =>
+    p.toLowerCase().includes(partSearch.toLowerCase())
+  );
+
+  // Build custom parts section for the SectionList
+  const allSections = [
+    ...(filteredCustomParts.length > 0
+      ? [{ title: '⭐ YOUR SAVED PARTS', data: filteredCustomParts }]
+      : []),
+    ...filteredCategories,
+  ];
+
+  // Whether there are any results at all (catalogue + custom)
+  const hasAnyResults = allSections.some(s => s.data.length > 0);
 
   // ── Render
   return (
@@ -300,6 +328,20 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
             />
           </View>
 
+          {/* ── Add as custom part when search has no catalogue matches */}
+          {partSearch.trim().length > 0 && !hasAnyResults && (
+            <TouchableOpacity
+              onPress={() => addPart(partSearch.trim(), undefined, undefined, true)}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF8E1', borderBottomWidth: 1, borderBottomColor: '#FFF0B3' }}
+            >
+              <List.Icon icon="plus-circle-outline" color="#F57C00" style={{ margin: 0, marginRight: 8 }} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyMedium" style={{ fontWeight: '700', color: '#E65100' }}>Add "{partSearch.trim()}" as custom part</Text>
+                <Text variant="labelSmall" style={{ color: '#F57C00' }}>Not found in catalogue — tap to add & save for future</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           {/* ── Inventory Items (DB) */}
           {inventoryItems.length > 0 && (
             <>
@@ -330,24 +372,24 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
             </>
           )}
 
-          {/* ── Common Parts Catalogue */}
+          {/* ── Common Parts Catalogue + Saved Custom Parts */}
           <SectionList
-            sections={filteredCategories}
-            keyExtractor={item => item}
+            sections={allSections}
+            keyExtractor={(item, index) => `${item}-${index}`}
             renderSectionHeader={({ section: { title } }) => (
-              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#E3F2FD' }}>
-                <Text variant="labelMedium" style={{ color: '#1976D2', fontWeight: 'bold', letterSpacing: 0.5 }}>{title}</Text>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: title.startsWith('⭐') ? '#FFF3E0' : '#E3F2FD' }}>
+                <Text variant="labelMedium" style={{ color: title.startsWith('⭐') ? '#E65100' : '#1976D2', fontWeight: 'bold', letterSpacing: 0.5 }}>{title}</Text>
               </View>
             )}
-            renderItem={({ item }) => (
+            renderItem={({ item, section }) => (
               <>
                 <List.Item
                   title={item}
                   left={props => (
                     <List.Icon
                       {...props}
-                      icon={item === 'Custom Part' ? 'pencil-outline' : 'cog-outline'}
-                      color={item === 'Custom Part' ? '#1976D2' : '#757575'}
+                      icon={section.title.startsWith('⭐') ? 'star-outline' : 'cog-outline'}
+                      color={section.title.startsWith('⭐') ? '#F57C00' : '#757575'}
                     />
                   )}
                   onPress={() => addPart(item)}
@@ -356,9 +398,11 @@ export const EstimateCalculator: React.FC<Props> = ({ onChange, garageId }) => {
               </>
             )}
             ListEmptyComponent={
-              <Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>
-                No parts found. Try a different search or use "Custom Part".
-              </Text>
+              partSearch.trim().length === 0 ? (
+                <Text style={{ padding: 24, textAlign: 'center', color: '#9E9E9E' }}>
+                  Type to search parts or add a custom entry.
+                </Text>
+              ) : null
             }
           />
         </SafeAreaView>

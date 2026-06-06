@@ -2,10 +2,10 @@ export type RootStackParamList = {
   // ── Auth screens (unauthenticated) ──
   Landing: undefined;
   Login: undefined;
-  SignupChoice: undefined;
+  StaffLogin: undefined;
+  ForgotPassword: undefined;
   GarageOnboarding: undefined;
   RegistrationThankYou: undefined;
-  StaffSignup: undefined;
 
   // ── App screens (authenticated) ──
   Home: undefined;

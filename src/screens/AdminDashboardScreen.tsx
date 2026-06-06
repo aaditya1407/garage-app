@@ -41,7 +41,6 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
   const [loading, setLoading]                   = useState(true);
   const [refreshing, setRefreshing]             = useState(false);
   const [garageName, setGarageName]             = useState('');
-  const [garageCode, setGarageCode]             = useState('');
 
   // Real metrics
   const [staffCount, setStaffCount]             = useState(0);
@@ -56,10 +55,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
       // 1. Garage info
       const { data: gd } = await supabase
         .from('garages')
-        .select('garage_name, garage_code')
+        .select('garage_name')
         .eq('id', garageId)
         .single();
-      if (gd) { setGarageName(gd.garage_name); setGarageCode(gd.garage_code); }
+      if (gd) { setGarageName(gd.garage_name); }
 
       // 2. Staff count
       const { count: sc } = await supabase
@@ -176,17 +175,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ user
           </TouchableOpacity>
         </View>
 
-        {/* ── Invite Code ── */}
-        <View style={styles.codeCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.codeLabel}>Garage Invite Code</Text>
-            <Text style={styles.codeSubLabel}>Share with staff to join</Text>
-          </View>
-          <View style={styles.codeBox}>
-            <Text style={styles.codeHash}>#</Text>
-            <Text style={styles.codeText}>{garageCode}</Text>
-          </View>
-        </View>
+
 
         {/* ── Metrics Row ── */}
         <Text style={styles.sectionTitle}>Live Overview</Text>
@@ -273,31 +262,7 @@ const styles = StyleSheet.create({
   backBtn:     { backgroundColor: C.accentSoft, alignSelf: 'flex-start', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: C.accent + '55', marginBottom: 16 },
   backBtnText: { color: C.accent, fontSize: 13, fontWeight: '700' },
 
-  // Invite Code
-  codeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 28,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  codeLabel:    { color: C.text, fontWeight: '700', fontSize: 15, marginBottom: 4 },
-  codeSubLabel: { color: C.textMuted, fontSize: 12 },
-  codeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.accentSoft,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.accent + '55',
-  },
-  codeHash: { color: C.accent, fontSize: 20, fontWeight: '800', marginRight: 4 },
-  codeText: { color: C.text,   fontSize: 28, fontWeight: '800', letterSpacing: 4 },
+
 
   sectionTitle: { color: C.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14 },
 

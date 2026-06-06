@@ -103,7 +103,7 @@ export const BranchManagerScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text variant="titleMedium" style={{ fontWeight: 'bold', color: '#111827' }}>
                   {item.garage_name}
                 </Text>
-                <Text variant="bodySmall" style={{ color: '#6B7280' }}>Code: {item.garage_code} • {item.city || 'No City'}</Text>
+                <Text variant="bodySmall" style={{ color: '#6B7280' }}>{item.city || 'No City'}</Text>
                 {isCurrent && (
                   <Text style={styles.activeBadge}>Current Branch</Text>
                 )}
