@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Login: undefined;
   StaffLogin: undefined;
   ForgotPassword: undefined;
+  ResetPassword: undefined;
   GarageOnboarding: undefined;
   RegistrationThankYou: undefined;
 

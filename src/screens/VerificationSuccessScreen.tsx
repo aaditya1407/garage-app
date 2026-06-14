@@ -12,29 +12,38 @@ interface Props {
   navigation: NavigationProp;
 }
 
+let activeRegistrationPromise: Promise<void> | null = null;
+let registrationError: string | null = null;
+
 export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [garageCode, setGarageCode] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const isRunning = useRef(false);
 
   useEffect(() => {
     executePendingRegistration();
   }, []);
 
   const executePendingRegistration = async () => {
-    // Guard against duplicate/concurrent execution
-    if (isRunning.current) return;
-    isRunning.current = true;
+    // If another instance of this screen is already running the registration, wait for it to finish.
+    if (activeRegistrationPromise) {
+      console.log("[VerificationSuccess] A registration is already in progress. Waiting for it...");
+      await activeRegistrationPromise;
+      if (registrationError) {
+        setErrorMsg(registrationError);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Create the promise lock
+    let resolvePromise: () => void = () => {};
+    activeRegistrationPromise = new Promise((resolve) => {
+      resolvePromise = resolve;
+    });
+    registrationError = null;
 
     try {
-      const dataStr = await AsyncStorage.getItem('pendingGarageData');
-      if (!dataStr) {
-        throw new Error("No pending garage data found. Please contact support.");
-      }
-
-      const data = JSON.parse(dataStr);
-      
       const { data: authData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
 
@@ -43,7 +52,29 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
         throw new Error("You are not fully authenticated yet.");
       }
 
-      // Check if a garage already exists for this user (prevents duplicate branches)
+      // 1. Check if profile already exists first. If so, registration is already complete.
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        console.log("[VerificationSuccess] Profile already exists, skipping insertion.");
+        await AsyncStorage.removeItem('pendingGarageData');
+        return;
+      }
+
+      // 2. Fetch pending registration data
+      const dataStr = await AsyncStorage.getItem('pendingGarageData');
+      if (!dataStr) {
+        // If profile doesn't exist AND no pending data is found, it's an error.
+        throw new Error("No pending garage data found. Please contact support.");
+      }
+
+      const data = JSON.parse(dataStr);
+
+      // 3. Check if a garage already exists for this owner user ID to prevent duplicate branches
       const { data: existingGarage } = await supabase
         .from('garages')
         .select('id, garage_code')
@@ -51,18 +82,11 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
         .limit(1)
         .maybeSingle();
 
-      if (existingGarage) {
-        // Garage already created (likely from a previous run) — just show the code
-        setGarageCode(existingGarage.garage_code);
-        await AsyncStorage.removeItem('pendingGarageData');
-        return;
-      }
+      let garageId = existingGarage?.id;
 
-      // Check if they already have a profile to avoid duplicates on refresh
-      const { data: existingProfile } = await supabase.from('profiles').select('id').eq('id', userId).single();
-      
-      if (!existingProfile) {
-        // 1. Insert Garage 
+      if (!garageId) {
+        console.log("[VerificationSuccess] Inserting new garage:", data.garageName);
+        // Create the garage
         const { data: garageData, error: garageError } = await supabase
           .from('garages')
           .insert({
@@ -73,45 +97,46 @@ export const VerificationSuccessScreen: React.FC<Props> = ({ navigation }) => {
             city: data.city,
             state: data.state,
             country: 'India',
-            owner_user_id: userId,   // ties garage to auth user UUID
+            owner_user_id: userId,
           })
           .select()
           .single();
 
         if (garageError) throw garageError;
-
-        // 2. Insert Profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            garage_id: garageData.id,
-            full_name: data.ownerName,
-            phone: data.phone,
-            role: 'admin'
-          });
-
-        if (profileError) throw profileError;
-
+        garageId = garageData.id;
         setGarageCode(garageData.garage_code);
-        await AsyncStorage.removeItem('pendingGarageData');
       } else {
-         // Profile exists, but maybe they refreshed the page. Try to get the garage code.
-         const { data: userProfile } = await supabase.from('profiles').select('garage_id').eq('id', userId).single();
-         if (userProfile?.garage_id) {
-           const { data: existGarage } = await supabase.from('garages').select('garage_code').eq('id', userProfile.garage_id).single();
-           if (existGarage) {
-             setGarageCode(existGarage.garage_code);
-             await AsyncStorage.removeItem('pendingGarageData');
-           }
-         }
+        console.log("[VerificationSuccess] Garage already exists for this owner, using existing ID:", garageId);
+        setGarageCode(existingGarage?.garage_code || null);
       }
 
+      // 4. Create the profile linked to the garage
+      console.log("[VerificationSuccess] Inserting new profile for owner.");
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          garage_id: garageId,
+          full_name: data.ownerName,
+          phone: data.phone,
+          role: 'admin'
+        });
+
+      if (profileError) throw profileError;
+
+      // 5. Clean up pending data
+      await AsyncStorage.removeItem('pendingGarageData');
+      console.log("[VerificationSuccess] Registration completed successfully.");
+
     } catch (err: any) {
-      setErrorMsg(err.message || "Something went wrong registering your garage.");
+      console.error("[VerificationSuccess] Registration failed:", err);
+      const msg = err.message || "Something went wrong registering your garage.";
+      registrationError = msg;
+      setErrorMsg(msg);
     } finally {
+      resolvePromise();
+      activeRegistrationPromise = null;
       setLoading(false);
-      isRunning.current = false;
     }
   };
 
