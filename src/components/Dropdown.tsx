@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, SafeAreaView, TextInput } from 'react-native';
 
 interface SelectOption {
   label: string;
@@ -17,7 +17,23 @@ interface DropdownProps {
 
 export const Dropdown: React.FC<DropdownProps> = ({ label, options, value, onSelect, error, placeholder = "Select an option" }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const selectedOption = options.find(o => o.value === value);
+
+  // Filter options based on search query
+  const filteredOptions = options.filter(o =>
+    o.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleOpen = () => {
+    setSearchQuery('');
+    setModalVisible(true);
+  };
+
+  const handleClose = () => {
+    setSearchQuery('');
+    setModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -25,7 +41,7 @@ export const Dropdown: React.FC<DropdownProps> = ({ label, options, value, onSel
       
       <TouchableOpacity 
         style={[styles.input, error && styles.inputError]} 
-        onPress={() => setModalVisible(true)}
+        onPress={handleOpen}
         activeOpacity={0.7}
       >
         <Text style={selectedOption ? styles.valueText : styles.placeholderText}>
@@ -39,32 +55,55 @@ export const Dropdown: React.FC<DropdownProps> = ({ label, options, value, onSel
         visible={modalVisible}
         transparent={true}
         animationType="slide"
+        onRequestClose={handleClose}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{label}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                 <Text style={styles.closeText}>Done</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={options}
-              keyExtractor={(item) => item.value}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={[styles.optionItem, value === item.value && styles.optionItemSelected]}
-                  onPress={() => {
-                    onSelect(item.value);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={[styles.optionText, value === item.value && styles.optionTextSelected]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
+
+            {/* Search Input */}
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                clearButtonMode="while-editing"
+                placeholderTextColor="#999"
+              />
+            </View>
+
+            {/* Options List */}
+            {filteredOptions.length === 0 ? (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>No results found</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredOptions}
+                keyExtractor={(item) => item.value}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={[styles.optionItem, value === item.value && styles.optionItemSelected]}
+                    onPress={() => {
+                      onSelect(item.value);
+                      handleClose();
+                    }}
+                  >
+                    <Text style={[styles.optionText, value === item.value && styles.optionTextSelected]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
             <SafeAreaView />
           </View>
         </View>
@@ -127,9 +166,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    paddingBottom: 12,
   },
   modalTitle: {
     fontSize: 18,
@@ -144,10 +181,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  searchInput: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    color: '#333',
+    height: 40,
+  },
   optionItem: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderBottomWidth:1,
+    borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
   },
   optionItemSelected: {
@@ -160,5 +214,14 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: '#208AEF',
     fontWeight: '600',
+  },
+  noResultsContainer: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noResultsText: {
+    color: '#999',
+    fontSize: 15,
   },
 });

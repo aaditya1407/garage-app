@@ -131,7 +131,12 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
         title={alertConfig.title}
         message={alertConfig.message}
         variant={alertConfig.variant}
-        onClose={() => setAlertVisible(false)}
+        onClose={() => {
+          setAlertVisible(false);
+          if (alertConfig.variant === 'success') {
+            navigation.navigate('Login');
+          }
+        }}
       />
     </SafeAreaView>
   );
