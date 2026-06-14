@@ -44,11 +44,11 @@ export const RegistrationThankYouScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.divider} />
 
           <View style={styles.cardRow}>
-            <Text style={styles.cardIcon}>🔑</Text>
+            <Text style={styles.cardIcon}>🏢</Text>
             <View style={styles.cardTextWrap}>
-              <Text style={styles.cardTitle}>Get Your Garage Code</Text>
+              <Text style={styles.cardTitle}>Manage Your Garage</Text>
               <Text style={styles.cardDescription}>
-                Once your email is verified, log in to receive your unique Garage Code. Share it with your staff so they can join your workspace.
+                Once your email is verified, log in to access your dashboard. You can add your staff members directly from the "Manage Staff" panel.
               </Text>
             </View>
           </View>

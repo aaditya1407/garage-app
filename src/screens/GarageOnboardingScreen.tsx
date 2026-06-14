@@ -177,7 +177,7 @@ export const GarageOnboardingScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.modalEmoji}>✉️</Text>
             <Text style={styles.modalTitle}>Check your email!</Text>
             <Text style={styles.modalText}>
-              We've sent a verification link to your email address. Once verified, come back to the app to receive your unique Garage Code!
+              We've sent a verification link to your email address. Once verified, log in to set up and start managing your garage dashboard!
             </Text>
             <Button title="Understood" onPress={() => { setShowVerifyModal(false); navigation.navigate('RegistrationThankYou'); }} />
           </View>
