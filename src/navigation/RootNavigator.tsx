@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { ActivityIndicator, View } from 'react-native';
 
 import { RootStackParamList } from './types';
+import { AlertModal } from '../components/AlertModal';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -40,12 +41,49 @@ const AppScreens = () => (
   </>
 );
 
+// Capture the launch URL hash and parameters synchronously as soon as the module is loaded.
+// This avoids issues where React Navigation or Expo Router clears the hash from the browser URL during initialization.
+let launchHash = '';
+let launchHref = '';
+if (typeof window !== 'undefined' && window.location) {
+  launchHash = window.location.hash || '';
+  launchHref = window.location.href || '';
+}
+
+const getLaunchParam = (param: string): string => {
+  try {
+    const hashParams = new URLSearchParams(launchHash.substring(1));
+    let val = hashParams.get(param);
+    if (val) return val;
+    const queryParams = new URLSearchParams(launchHref.split('?')[1] || '');
+    val = queryParams.get(param);
+    if (val) return val;
+  } catch (e) {
+    console.error('Failed to parse launch parameter:', e);
+  }
+  return '';
+};
+
+const launchErrorCode = getLaunchParam('error_code');
+const launchErrorDesc = getLaunchParam('error_description') || getLaunchParam('error');
+const isLaunchRecovery = launchHash.includes('type=recovery') || launchHref.includes('type=recovery');
+
 export const RootNavigator = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [staffSession, setStaffSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasPendingData, setHasPendingData] = useState(false);
   const [loginMode, setLoginMode] = useState<'admin' | 'staff'>('admin');
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(isLaunchRecovery);
+  const [alertVisible, setAlertVisible] = useState(!!(launchErrorCode || launchErrorDesc));
+  const [alertTitle, setAlertTitle] = useState(launchErrorCode || launchErrorDesc ? 'Link Expired or Invalid' : '');
+  const [alertMessage, setAlertMessage] = useState(
+    launchErrorDesc
+      ? launchErrorDesc.replace(/\+/g, ' ')
+      : launchErrorCode
+      ? 'This password reset link is invalid or has expired. Please request a new one.'
+      : ''
+  );
 
   const checkSessions = async () => {
     // Check staff session from AsyncStorage
@@ -71,6 +109,14 @@ export const RootNavigator = () => {
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
 
+    // Handle launch error side effects (sign out and clear URL)
+    if (launchErrorCode || launchErrorDesc) {
+      if (typeof window !== 'undefined' && window.location && window.history) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      supabase.auth.signOut().catch(() => {});
+    }
+
     // Check Supabase session
     supabase.auth.getSession()
       .then(({ data, error }) => {
@@ -84,7 +130,12 @@ export const RootNavigator = () => {
           setIsLoading(false);
           return;
         }
-        setSession(session);
+        // If the landing URL had an error (e.g. link expired), ignore the restored session to prevent dashboard redirect
+        if (launchErrorCode || launchErrorDesc) {
+          setSession(null);
+        } else {
+          setSession(session);
+        }
         checkSessions();
       })
       .catch((error) => {
@@ -104,7 +155,15 @@ export const RootNavigator = () => {
           setIsLoading(false);
           return;
         }
-        setSession(session ?? null);
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveringPassword(true);
+        }
+        // If the landing URL had an error, ignore initial session state triggers to prevent dashboard redirect
+        if (launchErrorCode || launchErrorDesc) {
+          setSession(null);
+        } else {
+          setSession(session ?? null);
+        }
         checkSessions();
       });
       subscription = authListener.data.subscription;
@@ -141,9 +200,28 @@ export const RootNavigator = () => {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Priority 1: Admin session (Supabase Auth) */}
-      {session && session.user ? (
+    <>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {isRecoveringPassword ? (
+        <Stack.Screen name="ResetPassword">
+          {(props) => {
+            const { ResetPasswordScreen } = require('../screens/ResetPasswordScreen');
+            return (
+              <ResetPasswordScreen
+                {...props}
+                onPasswordResetComplete={() => {
+                  setIsRecoveringPassword(false);
+                }}
+                onCancel={async () => {
+                  await supabase.auth.signOut().catch(() => {});
+                  setIsRecoveringPassword(false);
+                }}
+              />
+            );
+          }}
+        </Stack.Screen>
+      ) : session && session.user ? (
+        /* Priority 1: Admin session (Supabase Auth) */
         <>
           {hasPendingData && <Stack.Screen name="VerificationSuccess" component={require('../screens/VerificationSuccessScreen').VerificationSuccessScreen} />}
           <Stack.Screen name="Home" component={require('../screens/HomeScreen').default} />
@@ -213,5 +291,13 @@ export const RootNavigator = () => {
         </>
       )}
     </Stack.Navigator>
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        variant="error"
+        onClose={() => setAlertVisible(false)}
+      />
+    </>
   );
 };
